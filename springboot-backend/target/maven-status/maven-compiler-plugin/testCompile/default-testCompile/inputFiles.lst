@@ -1,0 +1,16 @@
+/Users/khassangali/dev/flipApp/springboot-backend/src/test/java/com/lovablecline/controller/AuthenticationControllerTest.java
+/Users/khassangali/dev/flipApp/springboot-backend/src/test/java/com/lovablecline/controller/ChatMessageControllerTest.java
+/Users/khassangali/dev/flipApp/springboot-backend/src/test/java/com/lovablecline/controller/GalleryItemControllerTest.java
+/Users/khassangali/dev/flipApp/springboot-backend/src/test/java/com/lovablecline/controller/ProjectControllerTest.java
+/Users/khassangali/dev/flipApp/springboot-backend/src/test/java/com/lovablecline/controller/ProjectUpdateControllerTest.java
+/Users/khassangali/dev/flipApp/springboot-backend/src/test/java/com/lovablecline/controller/UserControllerTest.java
+/Users/khassangali/dev/flipApp/springboot-backend/src/test/java/com/lovablecline/repository/ChatMessageRepositoryTest.java
+/Users/khassangali/dev/flipApp/springboot-backend/src/test/java/com/lovablecline/repository/GalleryItemRepositoryTest.java
+/Users/khassangali/dev/flipApp/springboot-backend/src/test/java/com/lovablecline/repository/ProjectRepositoryTest.java
+/Users/khassangali/dev/flipApp/springboot-backend/src/test/java/com/lovablecline/repository/ProjectUpdateRepositoryTest.java
+/Users/khassangali/dev/flipApp/springboot-backend/src/test/java/com/lovablecline/repository/UserRepositoryTest.java
+/Users/khassangali/dev/flipApp/springboot-backend/src/test/java/com/lovablecline/service/AuthenticationServiceTest.java
+/Users/khassangali/dev/flipApp/springboot-backend/src/test/java/com/lovablecline/service/ChatMessageServiceTest.java
+/Users/khassangali/dev/flipApp/springboot-backend/src/test/java/com/lovablecline/service/GalleryItemServiceTest.java
+/Users/khassangali/dev/flipApp/springboot-backend/src/test/java/com/lovablecline/service/ProjectServiceTest.java
+/Users/khassangali/dev/flipApp/springboot-backend/src/test/java/com/lovablecline/service/ProjectUpdateServiceTest.java

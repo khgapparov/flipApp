@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lovable Cline - House Flipping Portal</title>
+    <!-- React and ReactDOM must load first -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <!-- Babel for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide React Icons (with fallback) -->
+    <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.js"></script>
+    <!-- Tailwind CSS from CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Fallback for Lucide icons if CDN fails
+        window.lucideReactFallback = {
+            AlertCircle: () => React.createElement('span', { className: 'text-red-500' }, '⚠️'),
+            Home: () => React.createElement('span', null, '🏠'),
+            Calendar: () => React.createElement('span', null, '📅'),
+            TrendingUp: () => React.createElement('span', null, '📈'),
+            Image: () => React.createElement('span', null, '🖼️'),
+            ClipboardList: () => React.createElement('span', null, '📋'),
+            MessageCircle: () => React.createElement('span', null, '💬'),
+            Send: () => React.createElement('span', null, '📤'),
+            ZoomIn: () => React.createElement('span', null, '🔍')
+        };
+    </script>
+    <style>
+        .loading-spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .chat-message {
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Global variables provided by the environment
+        const __app_id = window.__app_id || 'lovable-cline-app';
+        const __firebase_config = window.__firebase_config || {
+            apiKey: "demo-api-key-not-valid-for-production",
+            authDomain: "demo-project.firebaseapp.com",
+            projectId: "demo-project",
+            storageBucket: "demo-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456"
+        };
+        const __initial_auth_token = window.__initial_auth_token || null;
+
+        // Demo mode flag to prevent Firebase initialization errors
+        const __demo_mode = true;
+
+        const { useState, useEffect, useRef } = React;
+        const { createRoot } = ReactDOM;
+        const lucide = window.lucideReact || window.lucideReactFallback;
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [project, setProject] = useState(null);
+            const [updates, setUpdates] = useState([]);
+            const [gallery, setGallery] = useState([]);
+            const [chatMessages, setChatMessages] = useState([]);
+            const [newMessage, setNewMessage] = useState('');
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [error, setError] = useState(null);
+            
+            const chatEndRef = useRef(null);
+            const firestore = useRef(null);
+            const auth = useRef(null);
+
+            // Initialize Firebase or use demo mode
+            useEffect(() => {
+                try {
+                    // Check if we're in demo mode (invalid API key)
+                    if (__firebase_config.apiKey.includes('demo-api-key-not-valid-for-production')) {
+                        // Demo mode - load mock data instead of connecting to Firebase
+                        setTimeout(() => {
+                            setLoading(false);
+                            // Load demo data directly
+                            const demoProject = {
+                                id: 'demo-project-123',
+                                name: "123 Main Street Flip",
+                                address: "123 Main Street, Anytown, CA 12345",
+                                status: "Renovation",
+                                startDate: { toDate: () => new Date("2025-01-15") },
+                                estimatedEndDate: { toDate: () => new Date("2025-06-30") },
+                                projectedProfit: "$75,000 - $100,000"
+                            };
+                            
+                            const demoUpdates = [
+                                {
+                                    id: '1',
+                                    description: "Demolition completed. All interior walls and fixtures removed.",
+                                    timestamp: new Date("2025-01-20")
+                                },
+                                {
+                                    id: '2',
+                                    description: "Electrical rough-in completed. All wiring installed to code.",
+                                    timestamp: new Date("2025-02-05")
+                                }
+                            ];
+                            
+                            const demoGallery = [
+                                {
+                                    id: '1',
+                                    url: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=300&fit=crop",
+                                    caption: "Before - Living Room",
+                                    timestamp: new Date("2025-01-10")
+                                }
+                            ];
+                            
+                            const demoChatMessages = [
+                                {
+                                    id: '1',
+                                    text: "Welcome to your project portal! Feel free to ask any questions about the renovation progress.",
+                                    sender: "manager",
+                                    senderName: "Project Manager",
+                                    timestamp: new Date("2025-01-16")
+                                }
+                            ];
+                            
+                            setProject(demoProject);
+                            setUpdates(demoUpdates);
+                            setGallery(demoGallery);
+                            setChatMessages(demoChatMessages);
+                            setUser({ uid: 'demo-user' });
+                        }, 1000);
+                    } else {
+                        // Real Firebase connection
+                        const app = firebase.initializeApp(__firebase_config);
+                        firestore.current = firebase.firestore(app);
+                        auth.current = firebase.auth(app);
+                        
+                        // Set up authentication state observer
+                        auth.current.onAuthStateChanged(async (user) => {
+                            if (user) {
+                                setUser(user);
+                                await loadUserData(user.uid);
+                            } else {
+                                await signInAnonymously();
+                            }
+                            setLoading(false);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Firebase initialization error:', error);
+                    setError('Failed to initialize application. Please refresh the page.');
+                    setLoading(false);
+                }
+            }, []);
+
+            // Scroll to bottom of chat when new messages arrive
+            useEffect(() => {
+                chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, [chatMessages]);
+
+            const signInAnonymously = async () => {
+                try {
+                    const { user } = await auth.current.signInAnonymously();
+                    setUser(user);
+                    await loadUserData(user.uid);
+                } catch (error) {
+                    console.error('Anonymous sign-in error:', error);
+                    setError('Failed to sign in. Please refresh the page.');
+                }
+            };
+
+            const loadUserData = async (userId) => {
+                try {
+                    // In a real app, you'd have a mapping from user ID to project ID
+                    // For demo purposes, we'll use a fixed project ID
+                    const projectId = 'demo-project-123';
+                    
+                    // Set up real-time listeners
+                    setupProjectListener(projectId);
+                    setupUpdatesListener(projectId);
+                    setupGalleryListener(projectId);
+                    setupChatListener(projectId);
+                } catch (error) {
+                    console.error('Error loading user data:', error);
+                    setError('Failed to load project data.');
+                }
+            };
+
+            const setupProjectListener = (projectId) => {
+                const projectRef = firestore.current.doc(`/artifacts/${__app_id}/public/data/projects/${projectId}`);
+                
+                return projectRef.onSnapshot(
+                    (snapshot) => {
+                        if (snapshot.exists) {
+                            setProject({ id: snapshot.id, ...snapshot.data() });
+                        }
+                    },
+                    (error) => {
+                        console.error('Project listener error:', error);
+                        setError('Failed to load project details.');
+                    }
+                );
+            };
+
+            const setupUpdatesListener = (projectId) => {
+                const updatesRef = firestore.current.collection(`/artifacts/${__app_id}/public/data/projects/${projectId}/updates`)
+                    .orderBy('timestamp', 'desc');
+                
+                return updatesRef.onSnapshot(
+                    (snapshot) => {
+                        const updatesData = snapshot.docs.map(doc => ({
+                            id: doc.id,
+                            ...doc.data(),
+                            timestamp: doc.data().timestamp?.toDate()
+                        }));
+                        setUpdates(updatesData);
+                    },
+                    (error) => {
+                        console.error('Updates listener error:', error);
+                        setError('Failed to load project updates.');
+                    }
+                );
+            };
+
+            const setupGalleryListener = (projectId) => {
+                const galleryRef = firestore.current.collection(`/artifacts/${__app_id}/public/data/projects/${projectId}/gallery`)
+                    .orderBy('timestamp', 'desc');
+                
+                return galleryRef.onSnapshot(
+                    (snapshot) => {
+                        const galleryData = snapshot.docs.map(doc => ({
+                            id: doc.id,
+                            ...doc.data(),
+                            timestamp: doc.data().timestamp?.toDate()
+                        }));
+                        setGallery(galleryData);
+                    },
+                    (error) => {
+                        console.error('Gallery listener error:', error);
+                        setError('Failed to load gallery images.');
+                    }
+                );
+            };
+
+            const setupChatListener = (projectId) => {
+                const chatRef = firestore.current.collection(`/artifacts/${__app_id}/public/data/projects/${projectId}/chat`)
+                    .orderBy('timestamp', 'asc');
+                
+                return chatRef.onSnapshot(
+                    (snapshot) => {
+                        const messagesData = snapshot.docs.map(doc => ({
+                            id: doc.id,
+                            ...doc.data(),
+                            timestamp: doc.data().timestamp?.toDate()
+                        }));
+                        setChatMessages(messagesData);
+                    },
+                    (error) => {
+                        console.error('Chat listener error:', error);
+                        setError('Failed to load chat messages.');
+                    }
+                );
+            };
+
+            const sendMessage = async () => {
+                if (!newMessage.trim() || !project) return;
+                
+                try {
+                    // Check if we're in demo mode
+                    if (__firebase_config.apiKey.includes('demo-api-key-not-valid-for-production')) {
+                        // Demo mode - just add message locally
+                        const message = {
+                            id: Date.now().toString(),
+                            text: newMessage.trim(),
+                            sender: user.uid,
+                            senderName: 'Client',
+                            timestamp: new Date()
+                        };
+                        
+                        setChatMessages(prev => [...prev, message]);
+                        setNewMessage('');
+                    } else {
+                        // Real Firebase connection
+                        const message = {
+                            text: newMessage.trim(),
+                            sender: user.uid,
+                            senderName: 'Client',
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        };
+                        
+                        await firestore.current.collection(`/artifacts/${__app_id}/public/data/projects/${project.id}/chat`).add(message);
+                        setNewMessage('');
+                    }
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                    setError('Failed to send message. Please try again.');
+                }
+            };
+
+            const getProjectStatus = () => {
+                if (!project) return 'Loading...';
+                
+                const today = new Date();
+                const endDate = project.estimatedEndDate?.toDate();
+                
+                if (!endDate) return 'On Track';
+                
+                const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                
+                if (daysRemaining < 0) return 'Delayed';
+                if (daysRemaining < 7) return 'Potential Delay';
+                if (daysRemaining < 14) return 'On Track';
+                return 'Ahead of Schedule';
+            };
+
+            const formatDate = (date) => {
+                if (!date) return 'N/A';
+                return new Intl.DateTimeFormat('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                }).format(date);
+            };
+
+            if (loading) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                        <div className="text-center">
+                            <div className="loading-spinner mx-auto mb-4"></div>
+                            <p className="text-gray-600">Loading your project...</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (error) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                        <div className="text-center p-6 bg-white rounded-lg shadow-md">
+                            <div className="text-red-500 mb-4">
+                                {lucide.AlertCircle({ size: 48 })}
+                            </div>
+                            <h2 className="text-xl font-semibold text-gray-800 mb-2">Error</h2>
+                            <p className="text-gray-600 mb-4">{error}</p>
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                            >
+                                Refresh Page
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gray-50">
+                    {/* Header */}
+                    <header className="bg-white shadow-sm border-b">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex justify-between items-center h-16">
+                                <div className="flex items-center">
+                                    <div className="bg-blue-600 p-2 rounded-lg">
+                                        {lucide.Home({ size: 24, className: 'text-white' })}
+                                    </div>
+                                    <h1 className="ml-3 text-2xl font-bold text-gray-900">Lovable Cline</h1>
+                                </div>
+                                <div className="flex items-center space-x-4">
+                                    <span className="text-sm text-gray-600">Client Portal</span>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Navigation */}
+                    <nav className="bg-white shadow-sm">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex space-x-8">
+                                {['dashboard', 'updates', 'gallery', 'chat'].map((tab) => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab)}
+                                        className={`px-3 py-4 text-sm font-medium border-b-2 transition-colors ${
+                                            activeTab === tab
+                                                ? 'border-blue-600 text-blue-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </nav>
+
+                    {/* Main Content */}
+                    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        {activeTab === 'dashboard' && (
+                            <DashboardView 
+                                project={project} 
+                                updates={updates} 
+                                gallery={gallery}
+                                getProjectStatus={getProjectStatus}
+                                formatDate={formatDate}
+                            />
+                        )}
+
+                        {activeTab === 'updates' && (
+                            <UpdatesView updates={updates} formatDate={formatDate} />
+                        )}
+
+                        {activeTab === 'gallery' && (
+                            <GalleryView gallery={gallery} formatDate={formatDate} />
+                        )}
+
+                        {activeTab === 'chat' && (
+                            <ChatView 
+                                chatMessages={chatMessages}
+                                newMessage={newMessage}
+                                setNewMessage={setNewMessage}
+                                sendMessage={sendMessage}
+                                user={user}
+                                chatEndRef={chatEndRef}
+                                formatDate={formatDate}
+                            />
+                        )}
+                    </main>
+                </div>
+            );
+        };
+
+        // Dashboard Component
+        const DashboardView = ({ project, updates, gallery, getProjectStatus, formatDate }) => {
+            if (!project) {
+                return (
+                    <div className="text-center py-12">
+                        <p className="text-gray-500">No project assigned yet.</p>
+                    </div>
+                );
+            }
+
+            const latestUpdate = updates[0];
+            const recentImages = gallery.slice(0, 3);
+
+            return (
+                <div className="space-y-6">
+                    {/* Project Header */}
+                    <div className="bg-white rounded-lg shadow-sm p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900">{project.name}</h2>
+                                <p className="text-gray-600">{project.address}</p>
+                            </div>
+                            <div className="mt-4 sm:mt-0">
+                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                                    project.status === 'Renovation' ? 'bg-yellow-100 text-yellow-800' :
+                                    project.status === 'For Sale' ? 'bg-green-100 text-green-800' :
+                                    'bg-gray-100 text-gray-800'
+                                }`}>
+                                    {project.status}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Status Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white rounded-lg shadow-sm p-6">
+                            <div className="flex items-center">
+                                <div className="bg-blue-100 p-3 rounded-lg">
+                                    {lucide.Calendar({ size: 20, className: 'text-blue-600' })}
+                                </div>
+                                <div className="ml-4">
+                                    <h3 className="text-sm font-medium text-gray-500">Timeline</h3>
+                                    <p className="text-lg font-semibold text-gray-900">
+                                        {getProjectStatus()}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-lg shadow-sm p-6">
+                            <div className="flex items-center">
+                                <div className="bg-green-100 p-3 rounded-lg">
+                                    {lucide.TrendingUp({ size: 20, className: 'text-green-600' })}
+                                </div>
+                                <div className="ml-4">
+                                    <h3 className="text-sm font-medium text-gray-500">Progress</h3>
+                                    <p className="text-lg font-semibold text-gray-900">
+                                        {updates.length} Updates
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-lg shadow-sm p-6">
+                            <div className="flex items-center">
+                                <div className="bg-purple-100 p-3 rounded-lg">
+                                    {lucide.Image({ size: 20, className: 'text-purple-600' })}
+                                </div>
+                                <div className="ml-4">
+                                    <h3 className="text-sm font-medium text-gray-500">Gallery</h3>
+                                    <p className="text-lg font-semibold text-gray-900">
+                                        {gallery.length} Photos
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Latest Update */}
+                    {latestUpdate && (
+                        <div className="bg-white rounded-lg shadow-sm p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Latest Update</h3>
+                            <div className="border-l-4 border-blue-500 pl-4">
+                                <p className="text-gray-800">{latestUpdate.description}</p>
+                                <p className="text-sm text-gray-500 mt-2">
+                                    {formatDate(latestUpdate.timestamp)}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Recent Images */}
+                    {recentImages.length > 0 && (
+                        <div className="bg-white rounded-lg shadow-sm p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Photos</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                {recentImages.map((image, index) => (
+                                    <div key={image.id} className="relative group">
+                                        <img
+                                            src={image.url}
+                                            alt={`Project progress ${index + 1}`}
+                                            className="w-full h-48 object-cover rounded-lg"
+                                        />
+                                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded-lg flex items-center justify-center">
+                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {lucide.ZoomIn({ size: 24, className: 'text-white' })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Project Timeline */}
+                    <div className="bg-white rounded-lg shadow-sm p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Project Timeline</h3>
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-600">Start Date</span>
+                                <span className="text-sm font-medium text-gray-900">
+                                    {formatDate(project.startDate?.toDate())}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-600">Estimated Completion</span>
+                                <span className="text-sm font-medium text-gray-900">
+                                    {formatDate(project.estimatedEndDate?.toDate())}
+                                </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                    style={{ width: '65%' }}
+                                ></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Updates Component
+        const UpdatesView = ({ updates, formatDate }) => {
+            if (updates.length === 0) {
+                return (
+                    <div className="text-center py-12">
+                        <div className="bg-blue-100 p-4 rounded-lg inline-block mb-4">
+                            {lucide.ClipboardList({ size: 32, className: 'text-blue-600' })}
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Updates Yet</h3>
+                        <p className="text-gray-600">Project updates will appear here once they are available.</p>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white rounded-lg shadow-sm p-6">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-6">Project Updates</h2>
+                        <div className="space-y-4">
+                            {updates.map((update) => (
+                                <div key={update.id} className="border-l-4 border-blue-500 pl-4 py-2">
+                                    <p className="text-gray-800">{update.description}</p>
+                                    <p className="text-sm text-gray-500 mt-1">
+                                        {formatDate(update.timestamp)}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Gallery Component
+        const GalleryView = ({ gallery, formatDate }) => {
+            if (gallery.length === 0) {
+                return (
+                    <div className="text-center py-12">
+                        <div className="bg-purple-100 p-4 rounded-lg inline-block mb-4">
+                            {lucide.Image({ size: 32, className: 'text-purple-600' })}
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Photos Yet</h3>
+                        <p className="text-gray-600">Project photos will appear here once they are available.</p>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white rounded-lg shadow-sm p-6">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-6">Photo Gallery</h2>
+                        <div className="gallery-grid">
+                            {gallery.map((image) => (
+                                <div key={image.id} className="bg-gray-100 rounded-lg overflow-hidden group">
+                                    <img
+                                        src={image.url}
+                                        alt={image.caption || 'Project photo'}
+                                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                                    />
+                                    <div className="p-3">
+                                        {image.caption && (
+                                            <p className="text-sm text-gray-700 mb-1">{image.caption}</p>
+                                        )}
+                                        <p className="text-xs text-gray-500">
+                                            {formatDate(image.timestamp)}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Chat Component
+        const ChatView = ({ chatMessages, newMessage, setNewMessage, sendMessage, user, chatEndRef, formatDate }) => {
+            return (
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Project Chat</h2>
+                    
+                    {/* Chat Messages */}
+                    <div className="h-96 overflow-y-auto mb-4 space-y-4 p-4 bg-gray-50 rounded-lg">
+                        {chatMessages.length === 0 ? (
+                            <div className="text-center py-8">
+                                <div className="bg-green-100 p-4 rounded-lg inline-block mb-4">
+                                    {lucide.MessageCircle({ size: 32, className: 'text-green-600' })}
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Start a Conversation</h3>
+                                <p className="text-gray-600">Send a message to your project manager to get started.</p>
+                            </div>
+                        ) : (
+                            chatMessages.map((message) => (
+                                <div
+                                    key={message.id}
+                                    className={`flex ${message.sender === user.uid ? 'justify-end' : 'justify-start'}`}
+                                >
+                                    <div className={`chat-message p-3 rounded-lg ${
+                                        message.sender === user.uid
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-gray-200 text-gray-800'
+                                    }`}>
+                                        <p className="text-sm">{message.text}</p>
+                                        <p className={`text-xs mt-1 ${
+                                            message.sender === user.uid
+                                                ? 'text-blue-100'
+                                                : 'text-gray-500'
+                                        }`}>
+                                            {message.senderName} • {formatDate(message.timestamp)}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                        <div ref={chatEndRef} />
+                    </div>
+
+                    {/* Message Input */}
+                    <div className="flex space-x-2">
+                        <input
+                            type="text"
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                            placeholder="Type your message..."
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                        <button
+                            onClick={sendMessage}
+                            disabled={!newMessage.trim()}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {lucide.Send({ size: 20 })}
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // Initialize the app
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
