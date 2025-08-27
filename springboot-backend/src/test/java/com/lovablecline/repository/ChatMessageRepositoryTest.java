@@ -54,7 +54,7 @@ public class ChatMessageRepositoryTest {
         testMessage1 = new ChatMessage();
         testMessage1.setMessage("Hello, this is the first message");
         testMessage1.setIsFromClient(true);
-        testMessage1.setProjectId(testProject.getId());
+        testMessage1.setProject(testProject);
         testMessage1.setUserId(testUser.getId());
         testMessage1.setCreatedAt(LocalDateTime.now().minusHours(3));
         testMessage1 = entityManager.persist(testMessage1);
@@ -62,7 +62,7 @@ public class ChatMessageRepositoryTest {
         testMessage2 = new ChatMessage();
         testMessage2.setMessage("This is the second message from the contractor");
         testMessage2.setIsFromClient(false);
-        testMessage2.setProjectId(testProject.getId());
+        testMessage2.setProject(testProject);
         testMessage2.setUserId(testUser.getId());
         testMessage2.setCreatedAt(LocalDateTime.now().minusHours(2));
         testMessage2 = entityManager.persist(testMessage2);
@@ -70,7 +70,7 @@ public class ChatMessageRepositoryTest {
         testMessage3 = new ChatMessage();
         testMessage3.setMessage("Another client message here");
         testMessage3.setIsFromClient(true);
-        testMessage3.setProjectId(testProject.getId());
+        testMessage3.setProject(testProject);
         testMessage3.setUserId(testUser.getId());
         testMessage3.setCreatedAt(LocalDateTime.now().minusHours(1));
         testMessage3 = entityManager.persist(testMessage3);
@@ -151,7 +151,7 @@ public class ChatMessageRepositoryTest {
         ChatMessage anotherMessage = new ChatMessage();
         anotherMessage.setMessage("Message from another project");
         anotherMessage.setIsFromClient(true);
-        anotherMessage.setProjectId(anotherProject.getId());
+        anotherMessage.setProject(anotherProject);
         anotherMessage.setUserId(testUser.getId());
         anotherMessage = entityManager.persist(anotherMessage);
 
@@ -253,7 +253,7 @@ public class ChatMessageRepositoryTest {
         ChatMessage newMessage = new ChatMessage();
         newMessage.setMessage("New chat message");
         newMessage.setIsFromClient(true);
-        newMessage.setProjectId(testProject.getId());
+        newMessage.setProject(testProject);
         newMessage.setUserId(testUser.getId());
 
         // When

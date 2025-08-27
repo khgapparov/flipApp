@@ -17,9 +17,6 @@ public class ChatMessage {
     @Column(name = "id", updatable = false, nullable = false)
     private String id;
     
-    @Column(name = "project_id")
-    private String projectId;
-    
     @Column(name = "user_id")
     private String userId;
     
@@ -34,7 +31,7 @@ public class ChatMessage {
     private LocalDateTime createdAt;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", insertable = false, updatable = false)
+    @JoinColumn(name = "project_id")
     @JsonBackReference("project-chat")
     private Project project;
     
@@ -47,10 +44,9 @@ public class ChatMessage {
         this.createdAt = LocalDateTime.now();
     }
     
-    public ChatMessage(String message, Boolean isFromClient, String projectId, String userId) {
+    public ChatMessage(String message, Boolean isFromClient, String userId) {
         this.message = message;
         this.isFromClient = isFromClient;
-        this.projectId = projectId;
         this.userId = userId;
         this.createdAt = LocalDateTime.now();
     }
@@ -64,13 +60,6 @@ public class ChatMessage {
         this.id = id;
     }
     
-    public String getProjectId() {
-        return projectId;
-    }
-    
-    public void setProjectId(String projectId) {
-        this.projectId = projectId;
-    }
     
     public String getUserId() {
         return userId;

@@ -2,7 +2,7 @@
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081';
 
 // WebSocket connection management
 let socket = null;
@@ -352,7 +352,7 @@ export const enhancedProjectService = {
       method: 'POST',
       body: JSON.stringify({
         ...projectData,
-        createdAt: format(new Date(), 'yyyy-MM-dd\'T\'HH:mm:ss.SSSxxx')
+        createdAt: format(new Date(), 'yyyy-MM-dd\'T\'HH:mm:ss.SSS')
       })
     });
     
@@ -428,7 +428,7 @@ export const enhancedUpdatesService = {
       method: 'POST',
       body: JSON.stringify({
         ...updateData,
-        timestamp: format(new Date(), 'yyyy-MM-dd\'T\'HH:mm:ss.SSSxxx')
+        timestamp: format(new Date(), 'yyyy-MM-dd\'T\'HH:mm:ss.SSS')
       })
     });
     
@@ -572,7 +572,7 @@ export const enhancedChatService = {
       method: 'POST',
       body: JSON.stringify({
         ...messageData,
-        timestamp: format(new Date(), 'yyyy-MM-dd\'T\'HH:mm:ss.SSSxxx')
+        createdAt: format(new Date(), 'yyyy-MM-dd\'T\'HH:mm:ss.SSS')
       })
     });
     

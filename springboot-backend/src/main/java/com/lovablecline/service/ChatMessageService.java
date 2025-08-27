@@ -20,7 +20,11 @@ public class ChatMessageService {
     private ProjectRepository projectRepository;
 
     public List<ChatMessage> getAllMessagesByProjectId(String userId, String projectId) {
-        return chatMessageRepository.findByUserIdAndProjectId(userId, projectId);
+        Optional<Project> projectOptional = projectRepository.findByUserIdAndProjectId(userId, projectId);
+        if (projectOptional.isEmpty()) {
+            throw new RuntimeException("Project not found");
+        }
+        return chatMessageRepository.findByProjectIdOrderByCreatedAtDesc(projectId);
     }
 
     public Optional<ChatMessage> getMessageById(String userId, String projectId, String messageId) {
@@ -33,7 +37,9 @@ public class ChatMessageService {
             throw new RuntimeException("Project not found");
         }
 
-        message.setProject(projectOptional.get());
+        Project project = projectOptional.get();
+        message.setProject(project);
+        message.setUserId(userId);
         return chatMessageRepository.save(message);
     }
 

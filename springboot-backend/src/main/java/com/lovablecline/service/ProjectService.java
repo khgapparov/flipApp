@@ -42,7 +42,9 @@ public class ProjectService {
             throw new RuntimeException("Project with this ID already exists");
         }
 
-        project.setOwner(userOptional.get());
+        User owner = userOptional.get();
+        project.setOwner(owner);
+        project.setOwnerId(owner.getId());
         return projectRepository.save(project);
     }
 

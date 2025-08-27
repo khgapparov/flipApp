@@ -1,6 +1,8 @@
 package com.lovablecline.config;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
@@ -14,8 +16,6 @@ import java.time.format.DateTimeFormatter;
 @Configuration
 public class JacksonConfig {
 
-    private static final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
-
     @Bean
     @Primary
     public ObjectMapper objectMapper() {
@@ -24,12 +24,14 @@ public class JacksonConfig {
         JavaTimeModule module = new JavaTimeModule();
         
         // Configure LocalDateTime serialization and deserialization
+        // Use ISO format for serialization
         LocalDateTimeSerializer localDateTimeSerializer = new LocalDateTimeSerializer(
-            DateTimeFormatter.ofPattern(DATE_TIME_FORMAT)
+            DateTimeFormatter.ISO_LOCAL_DATE_TIME
         );
         
+        // Create a custom deserializer that handles both formats: with and without milliseconds
         LocalDateTimeDeserializer localDateTimeDeserializer = new LocalDateTimeDeserializer(
-            DateTimeFormatter.ofPattern(DATE_TIME_FORMAT)
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss[.SSS]")
         );
         
         module.addSerializer(LocalDateTime.class, localDateTimeSerializer);
@@ -46,6 +48,11 @@ public class JacksonConfig {
         objectMapper.enable(com.fasterxml.jackson.databind.SerializationFeature.FAIL_ON_EMPTY_BEANS);
         objectMapper.disable(com.fasterxml.jackson.databind.SerializationFeature.FAIL_ON_SELF_REFERENCES);
         objectMapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_SELF_REFERENCES_AS_NULL);
+        
+        // Configure Jackson to accept snake_case field names in JSON
+        objectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        objectMapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
+        objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         
         return objectMapper;
     }

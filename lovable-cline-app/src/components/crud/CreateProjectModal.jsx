@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import { useCreateProject, useUpdateProject, useProject } from '../../hooks/useApi';
 import { validateForm, projectSchema } from '../../utils/validation';
 import FormField from '../forms/FormField';
@@ -89,8 +89,8 @@ const CreateProjectModal = ({
       const projectData = {
         name: data.name,
         address: data.address,
-        startDate: data.startDate,
-        estimatedEndDate: data.endDate, // Map endDate to estimatedEndDate
+        startDate: data.startDate ? `${data.startDate}T00:00:00` : null,
+        estimatedEndDate: data.endDate ? `${data.endDate}T00:00:00` : null,
         status: data.status,
         // Note: budget and description fields are not supported by backend
       };
@@ -152,7 +152,8 @@ const CreateProjectModal = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <FormProvider {...{ control, register, formState: { errors }, watch, setValue, reset, handleSubmit }}>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               name="name"
@@ -301,6 +302,7 @@ const CreateProjectModal = ({
             </button>
           </div>
         </form>
+        </FormProvider>
       </div>
     </div>
   );

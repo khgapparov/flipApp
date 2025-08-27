@@ -15,18 +15,20 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, String
     
     List<ChatMessage> findByProject(Project project);
     
-    List<ChatMessage> findByProjectId(String projectId);
+    @Query("SELECT cm FROM ChatMessage cm WHERE cm.project.id = :projectId")
+    List<ChatMessage> findByProjectId(@Param("projectId") String projectId);
     
     @Query("SELECT cm FROM ChatMessage cm WHERE cm.project.id = :projectId ORDER BY cm.createdAt DESC")
     List<ChatMessage> findByProjectIdOrderByCreatedAtDesc(@Param("projectId") String projectId);
     
-    @Query("SELECT cm FROM ChatMessage cm WHERE cm.userId = :userId AND cm.projectId = :projectId")
+    @Query("SELECT cm FROM ChatMessage cm WHERE cm.userId = :userId AND cm.project.id = :projectId")
     List<ChatMessage> findByUserIdAndProjectId(@Param("userId") String userId, @Param("projectId") String projectId);
     
     @Query("SELECT cm FROM ChatMessage cm WHERE cm.userId = :userId")
     List<ChatMessage> findAllByUserId(@Param("userId") String userId);
     
-    Optional<ChatMessage> findByIdAndProjectId(String id, String projectId);
+    @Query("SELECT cm FROM ChatMessage cm WHERE cm.id = :id AND cm.project.id = :projectId")
+    Optional<ChatMessage> findByIdAndProjectId(@Param("id") String id, @Param("projectId") String projectId);
     
     @Query("SELECT cm FROM ChatMessage cm WHERE cm.project.id = :projectId AND cm.isFromClient = :isFromClient ORDER BY cm.createdAt DESC")
     List<ChatMessage> findByProjectIdAndIsFromClientOrderByCreatedAtDesc(@Param("projectId") String projectId, @Param("isFromClient") Boolean isFromClient);

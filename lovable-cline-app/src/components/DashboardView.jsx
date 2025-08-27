@@ -6,12 +6,17 @@ import {
   Clock,
   MapPin,
   AlertCircle,
-  CheckCircle,
+  CheckCircle2,
   Clock as ClockIcon,
   User,
-  LogIn
+  LogIn,
+  DollarSign,
+  Users
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { Progress } from "./ui/progress";
 
 const DashboardView = ({ project, updates, gallery, getProjectStatus, formatDate }) => {
   const { user: authUser, loading: authLoading } = useAuth();
@@ -19,7 +24,7 @@ const DashboardView = ({ project, updates, gallery, getProjectStatus, formatDate
   if (!project) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">No project assigned yet.</p>
+        <p className="text-muted-foreground">No project assigned yet.</p>
       </div>
     );
   }
@@ -29,7 +34,7 @@ const DashboardView = ({ project, updates, gallery, getProjectStatus, formatDate
     return (
       <div className="text-center py-12">
         <div className="loading-spinner mx-auto mb-4"></div>
-        <p className="text-gray-500">Loading user information...</p>
+        <p className="text-muted-foreground">Loading user information...</p>
       </div>
     );
   }
@@ -41,26 +46,13 @@ const DashboardView = ({ project, updates, gallery, getProjectStatus, formatDate
   const getStatusIcon = (status) => {
     switch (status) {
       case 'On Track':
-        return <CheckCircle size={16} className="text-green-600" />;
+        return <CheckCircle2 size={16} className="text-success" />;
       case 'Potential Delay':
-        return <AlertCircle size={16} className="text-yellow-600" />;
+        return <AlertCircle size={16} className="text-warning" />;
       case 'Delayed':
-        return <AlertCircle size={16} className="text-red-600" />;
+        return <AlertCircle size={16} className="text-destructive" />;
       default:
-        return <ClockIcon size={16} className="text-gray-600" />;
-    }
-  };
-
-  const getStatusClass = (status) => {
-    switch (status) {
-      case 'On Track':
-        return 'status-on-track';
-      case 'Potential Delay':
-        return 'status-potential-delay';
-      case 'Delayed':
-        return 'status-delayed';
-      default:
-        return 'bg-gray-100 text-gray-800';
+        return <ClockIcon size={16} className="text-muted-foreground" />;
     }
   };
 
@@ -68,102 +60,114 @@ const DashboardView = ({ project, updates, gallery, getProjectStatus, formatDate
     <div className="space-y-8">
       {/* User Status Banner */}
       {authUser && authUser.isAnonymous && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <User size={20} className="text-yellow-600 mr-3" />
-            <div>
-              <h3 className="text-sm font-medium text-yellow-800">Guest Account</h3>
-              <p className="text-sm text-yellow-700">
-                You're using a temporary guest account. Create a permanent account to save your preferences and access all features.
-              </p>
+        <Card className="bg-warning/10 border-warning/20">
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <User size={20} className="text-warning mr-3" />
+              <div>
+                <h3 className="text-sm font-medium text-warning-foreground">Guest Account</h3>
+                <p className="text-sm text-warning-foreground/80">
+                  You're using a temporary guest account. Create a permanent account to save your preferences and access all features.
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {!authUser && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <LogIn size={20} className="text-blue-600 mr-3" />
-            <div>
-              <h3 className="text-sm font-medium text-blue-800">Welcome!</h3>
-              <p className="text-sm text-blue-700">
-                Sign in or create an account to personalize your experience and access additional features.
-              </p>
+        <Card className="bg-info/10 border-info/20">
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <LogIn size={20} className="text-info mr-3" />
+              <div>
+                <h3 className="text-sm font-medium text-info-foreground">Welcome!</h3>
+                <p className="text-sm text-info-foreground/80">
+                  Sign in or create an account to personalize your experience and access additional features.
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Project Header */}
-      <div className="card">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex-1">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">{project.name}</h2>
-            <div className="flex items-center text-gray-600 mb-4">
-              <MapPin size={16} className="mr-2" />
-              <span>{project.address}</span>
+      <Card className="animate-fade-in">
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex-1">
+              <h2 className="text-3xl font-bold text-foreground mb-2">{project.name}</h2>
+              <div className="flex items-center text-muted-foreground mb-4">
+                <MapPin size={16} className="mr-2" />
+                <span>{project.address}</span>
+              </div>
+              <p className="text-muted-foreground leading-relaxed">{project.description}</p>
             </div>
-            <p className="text-gray-600 leading-relaxed">{project.description}</p>
+            <div className="flex flex-col items-end gap-2">
+              <Badge variant="outline" className="gap-2">
+                {getStatusIcon(projectStatus)}
+                <span>{projectStatus}</span>
+              </Badge>
+              <Badge variant="secondary" className="bg-primary/10 text-primary-foreground">
+                {project.status}
+              </Badge>
+            </div>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(projectStatus)}`}>
-              {getStatusIcon(projectStatus)}
-              <span className="ml-2">{projectStatus}</span>
-            </span>
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-              {project.status}
-            </span>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Status Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Timeline Card */}
-        <div className="card">
-          <div className="flex items-center">
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <Calendar size={20} className="text-blue-600" />
+        <Card className="animate-fade-in">
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="bg-primary/10 p-3 rounded-lg">
+                <Calendar size={20} className="text-primary" />
+              </div>
+              <div className="ml-4">
+                <h3 className="text-sm font-medium text-muted-foreground">Timeline Status</h3>
+                <p className="text-lg font-semibold text-foreground">
+                  {projectStatus}
+                </p>
+              </div>
             </div>
-            <div className="ml-4">
-              <h3 className="text-sm font-medium text-gray-500">Timeline Status</h3>
-              <p className="text-lg font-semibold text-gray-900">
-                {projectStatus}
-              </p>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Progress Card */}
-        <div className="card">
-          <div className="flex items-center">
-            <div className="bg-orange-100 p-3 rounded-lg">
-              <TrendingUp size={20} className="text-orange-600" />
+        <Card className="animate-fade-in">
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="bg-success/10 p-3 rounded-lg">
+                <TrendingUp size={20} className="text-success" />
+              </div>
+              <div className="ml-4">
+                <h3 className="text-sm font-medium text-muted-foreground">Progress Updates</h3>
+                <p className="text-lg font-semibold text-foreground">
+                  {updates.length} Updates
+                </p>
+              </div>
             </div>
-            <div className="ml-4">
-              <h3 className="text-sm font-medium text-gray-500">Progress Updates</h3>
-              <p className="text-lg font-semibold text-gray-900">
-                {updates.length} Updates
-              </p>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Gallery Card */}
-        <div className="card">
-          <div className="flex items-center">
-            <div className="bg-green-100 p-3 rounded-lg">
-              <Image size={20} className="text-green-600" />
+        <Card className="animate-fade-in">
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="bg-info/10 p-3 rounded-lg">
+                <Image size={20} className="text-info" />
+              </div>
+              <div className="ml-4">
+                <h3 className="text-sm font-medium text-muted-foreground">Photo Gallery</h3>
+                <p className="text-lg font-semibold text-foreground">
+                  {gallery.length} Photos
+                </p>
+              </div>
             </div>
-            <div className="ml-4">
-              <h3 className="text-sm font-medium text-gray-500">Photo Gallery</h3>
-              <p className="text-lg font-semibold text-gray-900">
-                {gallery.length} Photos
-              </p>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Two Column Layout */}
@@ -172,67 +176,83 @@ const DashboardView = ({ project, updates, gallery, getProjectStatus, formatDate
         <div className="space-y-6">
           {/* Latest Update */}
           {latestUpdate && (
-            <div className="card">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Latest Update</h3>
-              <div className="border-l-4 border-blue-500 pl-4">
-                <p className="text-gray-700 leading-relaxed">{latestUpdate.description}</p>
-                <div className="flex items-center mt-3 text-sm text-gray-500">
-                  <Clock size={14} className="mr-2" />
-                  <span>{formatDate(latestUpdate.timestamp)}</span>
+            <Card className="animate-fade-in">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-info" />
+                  Latest Update
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="border-l-4 border-primary pl-4">
+                  <p className="text-foreground leading-relaxed">{latestUpdate.description}</p>
+                  <div className="flex items-center mt-3 text-sm text-muted-foreground">
+                    <Clock size={14} className="mr-2" />
+                    <span>{formatDate(latestUpdate.timestamp)}</span>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Project Timeline */}
-          <div className="card">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Project Timeline</h3>
-            <div className="space-y-4">
+          <Card className="animate-fade-in">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-primary" />
+                Project Timeline
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Start Date</span>
-                <span className="text-sm font-medium text-gray-900">
-                  {formatDate(project.startDate?.toDate())}
+                <span className="text-sm text-muted-foreground">Start Date</span>
+                <span className="text-sm font-medium text-foreground">
+                  {project.startDate ? formatDate(project.startDate.toDate()) : 'N/A'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Estimated Completion</span>
-                <span className="text-sm font-medium text-gray-900">
-                  {formatDate(project.estimatedEndDate?.toDate())}
+                <span className="text-sm text-muted-foreground">Estimated Completion</span>
+                <span className="text-sm font-medium text-foreground">
+                  {project.estimatedEndDate ? formatDate(project.estimatedEndDate.toDate()) : 'N/A'}
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: '65%' }}
-                ></div>
+              <div className="w-full bg-secondary rounded-full h-2">
+                <Progress value={project.progress || 65} className="h-2" />
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Right Column - Recent Images */}
         {recentImages.length > 0 && (
-          <div className="card">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Recent Photos</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {recentImages.map((image, index) => (
-                <div key={image.id} className="relative group overflow-hidden rounded-lg">
-                  <img
-                    src={image.image_url}
-                    alt={`Project progress ${index + 1}`}
-                    className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity flex items-center justify-center">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="bg-white p-2 rounded-full">
-                        <Image size={16} className="text-gray-800" />
+          <Card className="animate-fade-in">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Image className="h-5 w-5 text-info" />
+                Recent Photos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {recentImages.map((image, index) => (
+                  <div key={image.id} className="relative group overflow-hidden rounded-lg">
+                    <img
+                      src={image.image_url}
+                      alt={`Project progress ${index + 1}`}
+                      className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="bg-card p-2 rounded-full">
+                          <Image size={16} className="text-foreground" />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

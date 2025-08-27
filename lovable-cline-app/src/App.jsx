@@ -1,4 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { TooltipProvider } from "./components/ui/tooltip";
+import { Toaster } from "./components/ui/toaster";
 import { 
   AlertCircle, 
   Home,
@@ -10,7 +14,13 @@ import {
   Send,
   ZoomIn,
   User as UserIcon,
-  X
+  X,
+  FolderOpen,
+  MapPin,
+  CheckCircle2,
+  Clock,
+  Users,
+  DollarSign
 } from 'lucide-react';
 import { 
   enhancedAuthService, 
@@ -27,7 +37,14 @@ import DashboardView from './components/DashboardView';
 import UpdatesView from './components/UpdatesView';
 import GalleryView from './components/GalleryView';
 import ChatView from './components/ChatView';
+import ProjectsPage from './components/ProjectsPage';
+import { Card } from "./components/ui/card";
+import { Badge } from "./components/ui/badge";
+import { Progress } from "./components/ui/progress";
+import { Avatar, AvatarFallback } from "./components/ui/avatar";
 import './App.css';
+
+const queryClient = new QueryClient();
 
 // Global variables provided by the environment
 const __app_id = import.meta.env.VITE_APP_ID || 'lovable-cline-app';
@@ -44,8 +61,10 @@ function AppContent() {
   const [gallery, setGallery] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [error, setError] = useState(null);
+  
+  const navigate = useNavigate();
+  const location = useLocation();
   
   const chatEndRef = useRef(null);
   const unsubscribeRefs = useRef([]);
@@ -127,8 +146,8 @@ function AppContent() {
         // Convert backend date strings to Firebase Timestamp-like objects
         const processedProject = {
           ...projectData,
-          startDate: { toDate: () => new Date(projectData.start_date) },
-          estimatedEndDate: { toDate: () => new Date(projectData.estimated_end_date) }
+          startDate: { toDate: () => new Date(projectData.startDate) },
+          estimatedEndDate: { toDate: () => new Date(projectData.estimatedEndDate) }
         };
         setProject(processedProject);
       })
@@ -142,8 +161,8 @@ function AppContent() {
       // Convert backend date strings to Firebase Timestamp-like objects
       const processedProject = {
         ...projectData,
-        startDate: { toDate: () => new Date(projectData.start_date) },
-        estimatedEndDate: { toDate: () => new Date(projectData.estimated_end_date) }
+        startDate: { toDate: () => new Date(projectData.startDate) },
+        estimatedEndDate: { toDate: () => new Date(projectData.estimatedEndDate) }
       };
       setProject(processedProject);
     });
@@ -212,8 +231,9 @@ function AppContent() {
         setChatMessages(messagesData.map(message => ({
           ...message,
           text: message.message, // Map 'message' field to 'text'
-          timestamp: new Date(message.created_at), // Map 'created_at' field to 'timestamp'
-          senderName: message.is_from_client ? 'Client' : 'Project Manager' // Determine sender name based on is_from_client
+          sender: message.user_id, // Map 'user_id' field to 'sender'
+          createdAt: new Date(message.created_at), // Map 'created_at' field to 'createdAt'
+          senderName: message.isFromClient ? 'Client' : 'Project Manager' // Determine sender name based on isFromClient
         })));
       })
       .catch(error => {
@@ -226,8 +246,9 @@ function AppContent() {
       setChatMessages(messagesData.map(message => ({
         ...message,
         text: message.message, // Map 'message' field to 'text'
-        timestamp: new Date(message.created_at), // Map 'created_at' field to 'timestamp'
-        senderName: message.is_from_client ? 'Client' : 'Project Manager' // Determine sender name based on is_from_client
+        sender: message.user_id, // Map 'user_id' field to 'sender'
+        createdAt: new Date(message.created_at), // Map 'created_at' field to 'createdAt'
+        senderName: message.isFromClient ? 'Client' : 'Project Manager' // Determine sender name based on isFromClient
       })));
     });
     
@@ -241,7 +262,7 @@ function AppContent() {
       // Always use real API connection
       const messageData = {
         message: newMessage.trim(),
-        is_from_client: true
+        isFromClient: true
       };
       
       await enhancedChatService.sendMessage(project.id, messageData);
@@ -286,6 +307,24 @@ function AppContent() {
     }).format(dateObj);
   };
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'On Track': return 'bg-success text-success-foreground';
+      case 'Potential Delay': return 'bg-warning text-warning-foreground';
+      case 'Delayed': return 'bg-destructive text-destructive-foreground';
+      default: return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'On Track': return <CheckCircle2 className="h-4 w-4" />;
+      case 'Potential Delay': return <Clock className="h-4 w-4" />;
+      case 'Delayed': return <AlertCircle className="h-4 w-4" />;
+      default: return <Clock className="h-4 w-4" />;
+    }
+  };
+
   // Add auth buttons to header
   const renderAuthButtons = () => {
     if (authLoading) {
@@ -297,14 +336,18 @@ function AppContent() {
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setShowProfile(true)}
-            className="flex items-center space-x-2 text-gray-700 hover:text-gray-900"
+            className="flex items-center space-x-2 text-foreground hover:text-primary transition-colors"
           >
-            <UserIcon size={18} />
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                {authUser.username?.charAt(0)?.toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
             <span>{authUser.username}</span>
             {authUser.isAnonymous && (
-              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+              <Badge variant="outline" className="bg-warning/10 text-warning-foreground">
                 Guest
-              </span>
+              </Badge>
             )}
           </button>
         </div>
@@ -315,13 +358,13 @@ function AppContent() {
       <div className="flex items-center space-x-3">
         <button
           onClick={() => setShowLoginModal(true)}
-          className="text-gray-700 hover:text-gray-900"
+          className="text-foreground hover:text-primary transition-colors"
         >
           Login
         </button>
         <button
           onClick={() => setShowSignupModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
         >
           Sign Up
         </button>
@@ -331,10 +374,10 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="loading-spinner mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -343,19 +386,24 @@ function AppContent() {
   // Show welcome screen when no user is logged in
   if (!authUser) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
         {/* Header */}
-        <header className="bg-brand-surface shadow-sm border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center">
-                <div className="bg-brand-primary p-2 rounded-lg">
-                  <Home size={24} className="text-white" />
+        <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-gradient-primary p-2 rounded-lg shadow-glow">
+                  <Home size={24} className="text-primary-foreground" />
                 </div>
-                <h1 className="ml-3 text-2xl font-bold text-brand-text-primary">Lovable Cline</h1>
+                <div>
+                  <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                    Lovable Cline
+                  </h1>
+                  <p className="text-sm text-muted-foreground">Client Portal</p>
+                </div>
               </div>
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-brand-text-secondary">Client Portal</span>
+                <span className="text-sm text-muted-foreground">Client Portal</span>
                 {renderAuthButtons()}
               </div>
             </div>
@@ -363,26 +411,26 @@ function AppContent() {
         </header>
 
         {/* Welcome Content */}
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-          <div className="bg-white rounded-lg shadow-md p-8">
-            <div className="w-16 h-16 bg-brand-primary rounded-full flex items-center justify-center mx-auto mb-6">
-              <Home size={32} className="text-white" />
+        <main className="container mx-auto px-4 py-16 text-center">
+          <Card className="p-8 animate-fade-in">
+            <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-6">
+              <Home size={32} className="text-primary-foreground" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">Welcome to Lovable Cline</h2>
-            <p className="text-gray-600 mb-8 text-lg">
+            <h2 className="text-3xl font-bold text-foreground mb-4">Welcome to Lovable Cline</h2>
+            <p className="text-muted-foreground mb-8 text-lg">
               Your project management portal for tracking progress, updates, and communication.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={() => setShowLoginModal(true)}
-                className="bg-brand-primary text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors font-medium"
+                className="bg-primary text-primary-foreground px-6 py-3 rounded-md hover:bg-primary/90 transition-colors font-medium"
               >
                 Sign In
               </button>
               <button
                 onClick={() => setShowSignupModal(true)}
-                className="border border-brand-primary text-brand-primary px-6 py-3 rounded-md hover:bg-brand-primary hover:text-white transition-colors font-medium"
+                className="border border-primary text-primary px-6 py-3 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors font-medium"
               >
                 Create Account
               </button>
@@ -397,16 +445,16 @@ function AppContent() {
                     setLoading(false);
                   }
                 }}
-                className="text-gray-600 px-6 py-3 rounded-md hover:text-gray-800 hover:bg-gray-100 transition-colors font-medium"
+                className="text-muted-foreground px-6 py-3 rounded-md hover:text-foreground hover:bg-muted transition-colors font-medium"
               >
                 Continue as Guest
               </button>
             </div>
             
-            <p className="text-sm text-gray-500 mt-6">
+            <p className="text-sm text-muted-foreground mt-6">
               Guest access provides limited functionality. Sign in for full access to all features.
             </p>
-          </div>
+          </Card>
         </main>
 
         {/* Auth Modals */}
@@ -433,136 +481,227 @@ function AppContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center p-6 bg-white rounded-lg shadow-md">
-          <div className="text-red-500 mb-4">
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="text-center p-6">
+          <div className="text-destructive mb-4">
             <AlertCircle size={48} />
           </div>
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Error</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <h2 className="text-xl font-semibold text-foreground mb-2">Error</h2>
+          <p className="text-muted-foreground mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="bg-brand-primary text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
           >
             Refresh Page
           </button>
-        </div>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       {/* Header */}
-      <header className="bg-brand-surface shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="bg-brand-primary p-2 rounded-lg">
-                <Home size={24} className="text-white" />
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-primary p-2 rounded-lg shadow-glow">
+                <Home size={24} className="text-primary-foreground" />
               </div>
-              <h1 className="ml-3 text-2xl font-bold text-brand-text-primary">Lovable Cline</h1>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                  Lovable Cline
+                </h1>
+                <p className="text-sm text-muted-foreground">Client Portal</p>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-brand-text-secondary">Client Portal</span>
+            
+            <div className="flex items-center gap-4">
+              {project && (
+                <Badge variant="outline" className="gap-2">
+                  {getStatusIcon(getProjectStatus())}
+                  {getProjectStatus().toUpperCase()}
+                </Badge>
+              )}
               {renderAuthButtons()}
             </div>
           </div>
         </div>
       </header>
 
-      {/* Desktop Navigation */}
-      <nav className="hidden md:block bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
-            {[
-              { id: 'dashboard', label: 'Dashboard', icon: Home },
-              { id: 'updates', label: 'Updates', icon: ClipboardList },
-              { id: 'gallery', label: 'Gallery', icon: Image },
-              { id: 'chat', label: 'Messages', icon: MessageCircle }
-            ].map((tab) => {
-              const IconComponent = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-4 text-sm font-medium border-b-2 transition-all duration-200 flex items-center space-x-2 ${
-                    activeTab === tab.id
-                      ? 'border-brand-primary text-brand-primary'
-                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-                  }`}
-                >
-                  <IconComponent size={18} />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
+      {/* Project Header */}
+      {project && (
+        <div className="bg-gradient-hero text-primary-foreground">
+          <div className="container mx-auto px-4 py-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="animate-fade-in">
+                <h2 className="text-3xl font-bold mb-2">{project.name}</h2>
+                <div className="flex items-center gap-2 text-primary-foreground/80">
+                  <MapPin className="h-4 w-4" />
+                  <span>{project.address}</span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up">
+                <Card className="p-4 bg-card/10 border-primary-foreground/20 backdrop-blur-sm">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-success" />
+                    <div>
+                      <p className="text-sm text-primary-foreground/80">Progress</p>
+                      <p className="text-lg font-bold">{project.progress || 65}%</p>
+                    </div>
+                  </div>
+                </Card>
+                
+                <Card className="p-4 bg-card/10 border-primary-foreground/20 backdrop-blur-sm">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-warning" />
+                    <div>
+                      <p className="text-sm text-primary-foreground/80">Budget</p>
+                      <p className="text-lg font-bold">${project.budget ? (project.budget / 1000).toFixed(0) + 'K' : '350K'}</p>
+                    </div>
+                  </div>
+                </Card>
+                
+                <Card className="p-4 bg-card/10 border-primary-foreground/20 backdrop-blur-sm">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-info" />
+                    <div>
+                      <p className="text-sm text-primary-foreground/80">Team</p>
+                      <p className="text-lg font-bold">{project.team_size || 4}</p>
+                    </div>
+                  </div>
+                </Card>
+                
+                <Card className="p-4 bg-card/10 border-primary-foreground/20 backdrop-blur-sm">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-primary-glow" />
+                    <div>
+                      <p className="text-sm text-primary-foreground/80">Completion</p>
+                      <p className="text-sm font-medium">{formatDate(project.estimatedEndDate?.toDate())}</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+            
+            <div className="mt-6 animate-fade-in">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-primary-foreground/80">Overall Progress</span>
+                <span className="text-sm font-medium">{project.progress || 65}%</span>
+              </div>
+              <Progress value={project.progress || 65} className="h-3 bg-primary-foreground/20" />
+            </div>
           </div>
         </div>
-      </nav>
+      )}
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
-        <div className="grid grid-cols-4 h-16">
+      {/* Navigation Tabs */}
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex flex-wrap gap-4 mb-6 bg-card p-4 rounded-lg shadow-card">
           {[
-            { id: 'dashboard', label: 'Dashboard', icon: Home },
-            { id: 'updates', label: 'Updates', icon: ClipboardList },
-            { id: 'gallery', label: 'Gallery', icon: Image },
-            { id: 'chat', label: 'Messages', icon: MessageCircle }
+            { path: '/', label: 'Dashboard', icon: Home },
+            { path: '/projects', label: 'Projects', icon: FolderOpen },
+            { path: '/updates', label: 'Updates', icon: ClipboardList },
+            { path: '/gallery', label: 'Gallery', icon: Image },
+            { path: '/chat', label: 'Messages', icon: MessageCircle }
           ].map((tab) => {
             const IconComponent = tab.icon;
+            const isActive = location.pathname === tab.path;
             return (
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                key={tab.path}
+                onClick={() => navigate(tab.path)}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center space-x-2 ${
+                  isActive
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
+              >
+                <IconComponent size={18} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Main Content */}
+        <div className="animate-fade-in">
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                <DashboardView 
+                  project={project} 
+                  updates={updates} 
+                  gallery={gallery}
+                  getProjectStatus={getProjectStatus}
+                  formatDate={formatDate}
+                />
+              } 
+            />
+            <Route 
+              path="/projects" 
+              element={<ProjectsPage />} 
+            />
+            <Route 
+              path="/updates" 
+              element={<UpdatesView updates={updates} formatDate={formatDate} />} 
+            />
+            <Route 
+              path="/gallery" 
+              element={<GalleryView gallery={gallery} formatDate={formatDate} />} 
+            />
+            <Route 
+              path="/chat" 
+              element={
+                <ChatView 
+                  chatMessages={chatMessages}
+                  newMessage={newMessage}
+                  setNewMessage={setNewMessage}
+                  sendMessage={sendMessage}
+                  chatEndRef={chatEndRef}
+                  formatDate={formatDate}
+                />
+              } 
+            />
+          </Routes>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-gray-200 shadow-lg z-50">
+        <div className="grid grid-cols-5 h-16">
+          {[
+            { path: '/', label: 'Dashboard', icon: Home },
+            { path: '/projects', label: 'Projects', icon: FolderOpen },
+            { path: '/updates', label: 'Updates', icon: ClipboardList },
+            { path: '/gallery', label: 'Gallery', icon: Image },
+            { path: '/chat', label: 'Messages', icon: MessageCircle }
+          ].map((tab) => {
+            const IconComponent = tab.icon;
+            const isActive = location.pathname === tab.path;
+            return (
+              <button
+                key={tab.path}
+                onClick={() => navigate(tab.path)}
                 className={`flex flex-col items-center justify-center p-2 text-xs transition-all duration-200 ${
-                  activeTab === tab.id
-                    ? 'text-brand-primary'
-                    : 'text-gray-600 hover:text-gray-900'
+                  isActive
+                    ? 'text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 <IconComponent size={20} />
                 <span className="mt-1">{tab.label}</span>
-                {activeTab === tab.id && (
-                  <div className="absolute top-0 w-1/2 h-1 bg-brand-primary rounded-full"></div>
+                {isActive && (
+                  <div className="absolute top-0 w-1/2 h-1 bg-primary rounded-full"></div>
                 )}
               </button>
             );
           })}
         </div>
       </nav>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:pb-8 pb-20">
-        {activeTab === 'dashboard' && (
-          <DashboardView 
-            project={project} 
-            updates={updates} 
-            gallery={gallery}
-            getProjectStatus={getProjectStatus}
-            formatDate={formatDate}
-          />
-        )}
-
-        {activeTab === 'updates' && (
-          <UpdatesView updates={updates} formatDate={formatDate} />
-        )}
-
-        {activeTab === 'gallery' && (
-          <GalleryView gallery={gallery} formatDate={formatDate} />
-        )}
-
-        {activeTab === 'chat' && (
-          <ChatView 
-            chatMessages={chatMessages}
-            newMessage={newMessage}
-            setNewMessage={setNewMessage}
-            sendMessage={sendMessage}
-            chatEndRef={chatEndRef}
-            formatDate={formatDate}
-          />
-        )}
-      </main>
 
       {/* Auth Modals */}
       <LoginModal
@@ -586,12 +725,12 @@ function AppContent() {
       {/* User Profile Modal */}
       {showProfile && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-md">
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-semibold text-gray-800">User Profile</h2>
+          <div className="bg-card rounded-lg w-full max-w-md">
+            <div className="flex justify-between items-center p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-foreground">User Profile</h2>
               <button 
                 onClick={() => setShowProfile(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <X size={20} />
               </button>
@@ -608,9 +747,16 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Router>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </Router>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }
 

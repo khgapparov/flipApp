@@ -96,7 +96,7 @@ const ChatView = ({ chatMessages, newMessage, setNewMessage, sendMessage, chatEn
                         ? 'text-blue-200'
                         : 'text-gray-400'
                     }`}>
-                      {formatDate(message.timestamp)}
+                      {formatDate(message.createdAt)}
                     </p>
                   </div>
                 </div>
