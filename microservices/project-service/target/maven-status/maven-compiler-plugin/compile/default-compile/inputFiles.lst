@@ -1,0 +1,6 @@
+/Users/khassangali/dev/flipApp/microservices/project-service/src/main/java/com/ecolightcline/project/ProjectServiceApplication.java
+/Users/khassangali/dev/flipApp/microservices/project-service/src/main/java/com/ecolightcline/project/entity/Project.java
+/Users/khassangali/dev/flipApp/microservices/project-service/src/main/java/com/ecolightcline/project/entity/ProjectMember.java
+/Users/khassangali/dev/flipApp/microservices/project-service/src/main/java/com/ecolightcline/project/service/ProjectService.java
+/Users/khassangali/dev/flipApp/microservices/project-service/src/main/java/com/ecolightcline/project/controller/ProjectController.java
+/Users/khassangali/dev/flipApp/microservices/project-service/src/main/java/com/ecolightcline/project/repository/ProjectRepository.java

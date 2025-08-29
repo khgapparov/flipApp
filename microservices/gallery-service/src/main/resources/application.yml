@@ -1,0 +1,59 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: gallery-service
+  datasource:
+    url: jdbc:h2:mem:gallerydb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://admin:eureka-password@localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+
+gallery:
+  upload-dir: ./uploads
+  thumbnail:
+    width: 300
+    height: 300
+    quality: 0.8
+
+logging:
+  level:
+    com.ecolightcline: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

@@ -1,0 +1,8 @@
+/Users/khassangali/dev/flipApp/microservices/gallery-service/src/main/java/com/ecolightcline/gallery/service/ImageProcessingService.java
+/Users/khassangali/dev/flipApp/microservices/gallery-service/src/main/java/com/ecolightcline/gallery/repository/AlbumRepository.java
+/Users/khassangali/dev/flipApp/microservices/gallery-service/src/main/java/com/ecolightcline/gallery/entity/Image.java
+/Users/khassangali/dev/flipApp/microservices/gallery-service/src/main/java/com/ecolightcline/gallery/repository/ImageRepository.java
+/Users/khassangali/dev/flipApp/microservices/gallery-service/src/main/java/com/ecolightcline/gallery/service/GalleryService.java
+/Users/khassangali/dev/flipApp/microservices/gallery-service/src/main/java/com/ecolightcline/gallery/entity/Album.java
+/Users/khassangali/dev/flipApp/microservices/gallery-service/src/main/java/com/ecolightcline/gallery/GalleryServiceApplication.java
+/Users/khassangali/dev/flipApp/microservices/gallery-service/src/main/java/com/ecolightcline/gallery/controller/GalleryController.java

@@ -1,0 +1,10 @@
+/Users/khassangali/dev/flipApp/microservices/auth-service/src/main/java/com/lovablecline/auth/service/AuthService.java
+/Users/khassangali/dev/flipApp/microservices/auth-service/src/main/java/com/lovablecline/auth/repository/UserRepository.java
+/Users/khassangali/dev/flipApp/microservices/auth-service/src/main/java/com/lovablecline/auth/config/SecurityConfig.java
+/Users/khassangali/dev/flipApp/microservices/auth-service/src/main/java/com/lovablecline/auth/controller/AuthController.java
+/Users/khassangali/dev/flipApp/microservices/auth-service/src/main/java/com/lovablecline/auth/config/JwtConfig.java
+/Users/khassangali/dev/flipApp/microservices/auth-service/src/main/java/com/lovablecline/auth/AuthServiceApplication.java
+/Users/khassangali/dev/flipApp/microservices/auth-service/src/main/java/com/lovablecline/auth/service/JwtService.java
+/Users/khassangali/dev/flipApp/microservices/auth-service/src/main/java/com/lovablecline/auth/entity/User.java
+/Users/khassangali/dev/flipApp/microservices/auth-service/src/main/java/com/lovablecline/auth/repository/RefreshTokenRepository.java
+/Users/khassangali/dev/flipApp/microservices/auth-service/src/main/java/com/lovablecline/auth/entity/RefreshToken.java

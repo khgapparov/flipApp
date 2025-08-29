@@ -1,0 +1,6 @@
+com/ecolightcline/App.class
+com/ecolightcline/repository/UserProfileRepository.class
+com/ecolightcline/service/UserProfileService.class
+com/ecolightcline/UserServiceApplication.class
+com/ecolightcline/entity/UserProfile.class
+com/ecolightcline/controller/UserProfileController.class

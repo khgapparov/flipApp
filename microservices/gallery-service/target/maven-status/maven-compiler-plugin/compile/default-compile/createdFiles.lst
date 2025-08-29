@@ -1,0 +1,10 @@
+com/ecolightcline/gallery/repository/AlbumRepository.class
+com/ecolightcline/gallery/service/ImageProcessingService.class
+com/ecolightcline/gallery/controller/GalleryController.class
+com/ecolightcline/gallery/entity/Image.class
+com/ecolightcline/gallery/entity/Image$ImageFormat.class
+com/ecolightcline/gallery/GalleryServiceApplication.class
+com/ecolightcline/gallery/entity/Album.class
+com/ecolightcline/gallery/service/ImageProcessingService$ImageProcessingResult.class
+com/ecolightcline/gallery/service/GalleryService.class
+com/ecolightcline/gallery/repository/ImageRepository.class

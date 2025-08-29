@@ -1,0 +1,199 @@
+# Maven build artifacts
+**/target/
+*.jar
+*.jar.original
+*.war
+*.ear
+
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Log files
+*.log
+logs/
+**/logs/
+
+# Dependency directories
+**/node_modules/
+**/bower_components/
+
+# Build output directories
+build/
+**/build/
+dist/
+**/dist/
+
+# Docker artifacts
+Dockerfile
+docker-compose.yml
+.dockerignore
+**/.dockerignore
+
+# Database files
+*.db
+*.sqlite
+*.h2.db
+**/*.db
+**/*.sqlite
+**/*.h2.db
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.VolumeIcon.icns
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Maven wrapper
+.mvn/wrapper/maven-wrapper.properties
+
+# Compiled class files
+*.class
+**/*.class
+
+# Package Files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+
+# Maven
+**/pom.xml.tag
+**/pom.xml.releaseBackup
+**/pom.xml.versionsBackup
+**/pom.xml.next
+**/release.properties
+**/dependency-reduced-pom.xml
+
+# Gradle
+.gradle/
+**/.gradle/
+build/
+**/build/
+
+# Eclipse
+.metadata/
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+
+# NetBeans
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# VS Code
+.vscode/
+
+# IntelliJ
+out/
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Spring Boot
+**/application-*.properties
+**/application-*.yml
+
+# Smithy generated files
+build/smithy/
+**/build/smithy/
+
+# Test reports
+**/test-output/
+**/test-results/
+**/surefire-reports/
+**/failsafe-reports/
+
+# Coverage reports
+**/coverage/
+**/.nyc_output/
+
+# Temp files
+tmp/
+**/tmp/
+temp/
+**/temp/
+
+# Upload directories (should be handled by volumes)
+uploads/
+**/uploads/
+
+# Docker build context files
+.docker/
+**/.docker/
+
+# Maven wrapper
+mvnw
+mvnw.cmd
+.mvn/
+**/.mvn/
+
+# LovableCline specific
+lovable_cline.db
+ecolight_cline.db
+auth_service.db
+
+# Build scripts
+build-docker-images.sh
+
+# Documentation files (keep these)
+# !microservices/DOCKER-README.md
+# !microservices-test-commands.md
+# !onboarding-service-template.md
+
+# Istio config (keep these)
+# !istio-config/
+# !istio-config/*.yaml
+# !istio-config/README.md

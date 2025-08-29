@@ -47,7 +47,7 @@ import './App.css';
 const queryClient = new QueryClient();
 
 // Global variables provided by the environment
-const __app_id = import.meta.env.VITE_APP_ID || 'lovable-cline-app';
+const __app_id = import.meta.env.VITE_APP_ID || 'ecolight-cline-app';
 const __initial_auth_token = import.meta.env.VITE_INITIAL_AUTH_TOKEN || null;
 
 function AppContent() {

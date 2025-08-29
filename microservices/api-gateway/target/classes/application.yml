@@ -1,0 +1,136 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: authService
+                fallbackUri: forward:/fallback/auth
+        
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: userService
+                fallbackUri: forward:/fallback/user
+            - name: JwtAuthenticationFilter
+        
+        - id: project-service
+          uri: lb://project-service
+          predicates:
+            - Path=/api/projects/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: projectService
+                fallbackUri: forward:/fallback/project
+            - name: JwtAuthenticationFilter
+        
+        - id: chat-service
+          uri: lb://chat-service
+          predicates:
+            - Path=/api/chat/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: chatService
+                fallbackUri: forward:/fallback/chat
+            - name: JwtAuthenticationFilter
+        
+        - id: gallery-service
+          uri: lb://gallery-service
+          predicates:
+            - Path=/api/gallery/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: galleryService
+                fallbackUri: forward:/fallback/gallery
+            - name: JwtAuthenticationFilter
+    
+    discovery:
+      enabled: true
+
+# Eureka Client Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+
+# JWT Configuration for token validation
+jwt:
+  secret: ${JWT_SECRET:your-super-secret-jwt-key-change-this-in-production}
+  issuer: auth-service
+
+# Circuit Breaker Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      authService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 10000
+        failureRateThreshold: 50
+      userService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 10000
+        failureRateThreshold: 50
+      projectService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 10000
+        failureRateThreshold: 50
+      chatService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 10000
+        failureRateThreshold: 50
+      galleryService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 10000
+        failureRateThreshold: 50
+
+# Logging
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    com.ecolightcline.gateway: DEBUG
+    reactor.netty: INFO
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, gateway
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      enabled: true

@@ -1,0 +1,381 @@
+{
+    "smithy": "2.0",
+    "shapes": {
+        "com.ecolightcline.auth#AuthService": {
+            "type": "service",
+            "version": "2024-01-01",
+            "operations": [
+                {
+                    "target": "com.ecolightcline.auth#LoginUser"
+                },
+                {
+                    "target": "com.ecolightcline.auth#LogoutUser"
+                },
+                {
+                    "target": "com.ecolightcline.auth#RefreshToken"
+                },
+                {
+                    "target": "com.ecolightcline.auth#RegisterUser"
+                },
+                {
+                    "target": "com.ecolightcline.auth#ValidateToken"
+                }
+            ],
+            "traits": {
+                "smithy.api#documentation": "Authentication service for user login, registration, and token management"
+            }
+        },
+        "com.ecolightcline.auth#InvalidCredentialsError": {
+            "type": "structure",
+            "members": {
+                "message": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Error when credentials are invalid",
+                "smithy.api#error": "client",
+                "smithy.api#httpError": 401
+            }
+        },
+        "com.ecolightcline.auth#InvalidTokenError": {
+            "type": "structure",
+            "members": {
+                "message": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Error when token is invalid or expired",
+                "smithy.api#error": "client",
+                "smithy.api#httpError": 401
+            }
+        },
+        "com.ecolightcline.auth#LoginRequest": {
+            "type": "structure",
+            "members": {
+                "identifier": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "password": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Request to authenticate a user"
+            }
+        },
+        "com.ecolightcline.auth#LoginResponse": {
+            "type": "structure",
+            "members": {
+                "accessToken": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "refreshToken": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "expiresIn": {
+                    "target": "smithy.api#Long",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "userId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "username": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "User login response with JWT tokens"
+            }
+        },
+        "com.ecolightcline.auth#LoginUser": {
+            "type": "operation",
+            "input": {
+                "target": "com.ecolightcline.auth#LoginRequest"
+            },
+            "output": {
+                "target": "com.ecolightcline.auth#LoginResponse"
+            },
+            "errors": [
+                {
+                    "target": "com.ecolightcline.auth#InvalidCredentialsError"
+                }
+            ],
+            "traits": {
+                "smithy.api#documentation": "Authenticate user and return JWT tokens",
+                "smithy.api#http": {
+                    "method": "POST",
+                    "uri": "/api/auth/login"
+                }
+            }
+        },
+        "com.ecolightcline.auth#LogoutRequest": {
+            "type": "structure",
+            "members": {
+                "refreshToken": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Logout request"
+            }
+        },
+        "com.ecolightcline.auth#LogoutResponse": {
+            "type": "structure",
+            "members": {
+                "message": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Logout response"
+            }
+        },
+        "com.ecolightcline.auth#LogoutUser": {
+            "type": "operation",
+            "input": {
+                "target": "com.ecolightcline.auth#LogoutRequest"
+            },
+            "output": {
+                "target": "com.ecolightcline.auth#LogoutResponse"
+            },
+            "traits": {
+                "smithy.api#documentation": "Invalidate refresh token",
+                "smithy.api#http": {
+                    "method": "POST",
+                    "uri": "/api/auth/logout"
+                }
+            }
+        },
+        "com.ecolightcline.auth#RefreshRequest": {
+            "type": "structure",
+            "members": {
+                "refreshToken": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Token refresh request"
+            }
+        },
+        "com.ecolightcline.auth#RefreshResponse": {
+            "type": "structure",
+            "members": {
+                "accessToken": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "expiresIn": {
+                    "target": "smithy.api#Long",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Token refresh response"
+            }
+        },
+        "com.ecolightcline.auth#RefreshToken": {
+            "type": "operation",
+            "input": {
+                "target": "com.ecolightcline.auth#RefreshRequest"
+            },
+            "output": {
+                "target": "com.ecolightcline.auth#RefreshResponse"
+            },
+            "errors": [
+                {
+                    "target": "com.ecolightcline.auth#InvalidTokenError"
+                }
+            ],
+            "traits": {
+                "smithy.api#documentation": "Refresh access token using refresh token",
+                "smithy.api#http": {
+                    "method": "POST",
+                    "uri": "/api/auth/refresh"
+                }
+            }
+        },
+        "com.ecolightcline.auth#RegisterRequest": {
+            "type": "structure",
+            "members": {
+                "username": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "email": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "password": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "firstName": {
+                    "target": "smithy.api#String"
+                },
+                "lastName": {
+                    "target": "smithy.api#String"
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Request to register a new user"
+            }
+        },
+        "com.ecolightcline.auth#RegisterResponse": {
+            "type": "structure",
+            "members": {
+                "userId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "message": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "User registration response"
+            }
+        },
+        "com.ecolightcline.auth#RegisterUser": {
+            "type": "operation",
+            "input": {
+                "target": "com.ecolightcline.auth#RegisterRequest"
+            },
+            "output": {
+                "target": "com.ecolightcline.auth#RegisterResponse"
+            },
+            "errors": [
+                {
+                    "target": "com.ecolightcline.auth#UserAlreadyExistsError"
+                }
+            ],
+            "traits": {
+                "smithy.api#documentation": "Register a new user account",
+                "smithy.api#http": {
+                    "method": "POST",
+                    "uri": "/api/auth/register"
+                }
+            }
+        },
+        "com.ecolightcline.auth#UserAlreadyExistsError": {
+            "type": "structure",
+            "members": {
+                "message": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Error when user already exists",
+                "smithy.api#error": "client",
+                "smithy.api#httpError": 409
+            }
+        },
+        "com.ecolightcline.auth#ValidateRequest": {
+            "type": "structure",
+            "members": {
+                "token": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Token validation request"
+            }
+        },
+        "com.ecolightcline.auth#ValidateResponse": {
+            "type": "structure",
+            "members": {
+                "isValid": {
+                    "target": "smithy.api#Boolean",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "userId": {
+                    "target": "smithy.api#String"
+                },
+                "username": {
+                    "target": "smithy.api#String"
+                },
+                "expiresAt": {
+                    "target": "smithy.api#Timestamp"
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Token validation response"
+            }
+        },
+        "com.ecolightcline.auth#ValidateToken": {
+            "type": "operation",
+            "input": {
+                "target": "com.ecolightcline.auth#ValidateRequest"
+            },
+            "output": {
+                "target": "com.ecolightcline.auth#ValidateResponse"
+            },
+            "traits": {
+                "smithy.api#documentation": "Validate JWT token",
+                "smithy.api#http": {
+                    "method": "POST",
+                    "uri": "/api/auth/validate"
+                }
+            }
+        }
+    }
+}
