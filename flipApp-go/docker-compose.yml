@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: flipapp
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d flipapp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  consul:
+    image: consul:1.13
+    ports:
+      - "8500:8500"
+    volumes:
+      - consul_data:/consul/data
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    ports:
+      - "9000:9000"
+    depends_on:
+      - consul
+      - auth-service
+      - user-service
+      - property-service
+      - project-service
+      - gallery-service
+      - chat-service
+    restart: on-failure
+
+  auth-service:
+    build:
+      context: ./auth-service
+    ports:
+      - "8080:8080"
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-change-this-in-production-use-a-secure-secret}
+    depends_on:
+      - postgres
+      - consul
+    restart: on-failure
+
+  user-service:
+    build:
+      context: ./user-service
+    depends_on:
+      - postgres
+      - consul
+    restart: on-failure
+
+  property-service:
+    build:
+      context: ./property-service
+    depends_on:
+      - postgres
+      - consul
+    restart: on-failure
+
+  project-service:
+    build:
+      context: ./project-service
+    depends_on:
+      - postgres
+      - consul
+    restart: on-failure
+
+  gallery-service:
+    build:
+      context: ./gallery-service
+    depends_on:
+      - postgres
+      - consul
+    restart: on-failure
+
+  chat-service:
+    build:
+      context: ./chat-service
+    depends_on:
+      - postgres
+      - consul
+    restart: on-failure
+
+volumes:
+  postgres_data:
+  consul_data:

@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "sources": ["."],
+  "maven": {
+    "dependencies": [
+      "software.amazon.smithy:smithy-cli:1.47.0",
+      "software.amazon.smithy.go:smithy-go-codegen:0.1.0"
+    ]
+  },
+  "plugins": {
+    "go-codegen": {
+      "service": "flipapp.auth#AuthService",
+      "module": "flipapp/auth-service",
+      "generateGoMod": true
+    }
+  }
+}
