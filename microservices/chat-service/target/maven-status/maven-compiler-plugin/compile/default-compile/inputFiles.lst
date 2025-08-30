@@ -1,7 +1,0 @@
-/Users/khassangali/dev/flipApp/microservices/chat-service/src/main/java/com/ecolightcline/chat/service/ChatService.java
-/Users/khassangali/dev/flipApp/microservices/chat-service/src/main/java/com/ecolightcline/chat/entity/Conversation.java
-/Users/khassangali/dev/flipApp/microservices/chat-service/src/main/java/com/ecolightcline/chat/entity/ChatMessage.java
-/Users/khassangali/dev/flipApp/microservices/chat-service/src/main/java/com/ecolightcline/chat/repository/ConversationRepository.java
-/Users/khassangali/dev/flipApp/microservices/chat-service/src/main/java/com/ecolightcline/chat/controller/ChatController.java
-/Users/khassangali/dev/flipApp/microservices/chat-service/src/main/java/com/ecolightcline/chat/repository/ChatMessageRepository.java
-/Users/khassangali/dev/flipApp/microservices/chat-service/src/main/java/com/ecolightcline/chat/ChatServiceApplication.java

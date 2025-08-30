@@ -1,4 +1,0 @@
-com/ecolightcline/gateway/filter/JwtAuthenticationFilter$Config.class
-com/ecolightcline/gateway/ApiGatewayApplication.class
-com/ecolightcline/gateway/controller/FallbackController.class
-com/ecolightcline/gateway/filter/JwtAuthenticationFilter.class

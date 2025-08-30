@@ -1,3 +1,0 @@
-/Users/khassangali/dev/flipApp/microservices/api-gateway/src/main/java/com/lovablecline/gateway/ApiGatewayApplication.java
-/Users/khassangali/dev/flipApp/microservices/api-gateway/src/main/java/com/lovablecline/gateway/filter/JwtAuthenticationFilter.java
-/Users/khassangali/dev/flipApp/microservices/api-gateway/src/main/java/com/lovablecline/gateway/controller/FallbackController.java
