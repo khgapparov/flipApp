@@ -1,10 +1,11 @@
 package main
 
 import (
-    "os"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	consul "github.com/hashicorp/consul/api"
@@ -39,6 +40,8 @@ type UserProfile struct {
 	CreatedAt   string      `json:"createdAt"`
 	UpdatedAt   string      `json:"updatedAt"`
 }
+
+var users = make(map[string]UserProfile)
 
 func main() {
 	registerServiceWithConsul()
@@ -103,35 +106,86 @@ func registerServiceWithConsul() {
 	fmt.Printf("Successfully registered service '%s' with Consul at %s\n", SERVICE_NAME, consulAddr)
 }
 
-// CreateUserProfile is a placeholder handler for the CreateUserProfile operation
 func CreateUserProfile(c *gin.Context) {
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Placeholder for CreateUserProfile",
-	})
+	var input struct {
+		ProfileType ProfileType `json:"profileType" binding:"required"`
+		Email       string      `json:"email" binding:"required"`
+		FirstName   *string     `json:"firstName"`
+		LastName    *string     `json:"lastName"`
+		CompanyName *string     `json:"companyName"`
+		AvatarURL   *string     `json:"avatarUrl"`
+		PhoneNumber *string     `json:"phoneNumber"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID := fmt.Sprintf("user_%d", time.Now().UnixNano())
+	user := UserProfile{
+		UserID:      userID,
+		ProfileType: input.ProfileType,
+		Email:       input.Email,
+		FirstName:   input.FirstName,
+		LastName:    input.LastName,
+		CompanyName: input.CompanyName,
+		AvatarURL:   input.AvatarURL,
+		PhoneNumber: input.PhoneNumber,
+		CreatedAt:   time.Now().Format(time.RFC3339),
+		UpdatedAt:   time.Now().Format(time.RFC3339),
+	}
+
+	users[userID] = user
+	c.JSON(http.StatusCreated, gin.H{"profile": user})
 }
 
-// GetUserProfile is a placeholder handler for the GetUserProfile operation
 func GetUserProfile(c *gin.Context) {
 	userId := c.Param("userId")
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Placeholder for GetUserProfile",
-		"userId":  userId,
-	})
+	user, exists := users[userId]
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"profile": user})
 }
 
-// UpdateUserProfile is a placeholder handler for the UpdateUserProfile operation
 func UpdateUserProfile(c *gin.Context) {
 	userId := c.Param("userId")
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Placeholder for UpdateUserProfile",
-		"userId":  userId,
-	})
+	user, exists := users[userId]
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	var input struct {
+		FirstName   *string `json:"firstName"`
+		LastName    *string `json:"lastName"`
+		CompanyName *string `json:"companyName"`
+		AvatarURL   *string `json:"avatarUrl"`
+		PhoneNumber *string `json:"phoneNumber"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user.FirstName = input.FirstName
+	user.LastName = input.LastName
+	user.CompanyName = input.CompanyName
+	user.AvatarURL = input.AvatarURL
+	user.PhoneNumber = input.PhoneNumber
+	user.UpdatedAt = time.Now().Format(time.RFC3339)
+
+	users[userId] = user
+	c.JSON(http.StatusOK, gin.H{"profile": user})
 }
 
-// ListUsers is a placeholder handler for the ListUsers operation
 func ListUsers(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Placeholder for ListUsers",
-		"users":   []UserProfile{},
-	})
+	userList := make([]UserProfile, 0, len(users))
+	for _, user := range users {
+		userList = append(userList, user)
+	}
+	c.JSON(http.StatusOK, gin.H{"users": userList})
 }

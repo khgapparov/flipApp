@@ -29,6 +29,8 @@ services:
       context: ./api-gateway
     ports:
       - "9000:9000"
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-changeme}
     depends_on:
       - consul
       - auth-service
@@ -70,6 +72,8 @@ services:
   project-service:
     build:
       context: ./project-service
+    ports:
+      - "8083:8083"
     depends_on:
       - postgres
       - consul

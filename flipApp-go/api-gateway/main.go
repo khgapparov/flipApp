@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -38,8 +39,9 @@ func main() {
 		log.Fatalf("Failed to create consul client: %v", err)
 	}
 
-	// Discover services at startup
+	// Discover services at startup and start periodic discovery
 	discoverServices(consulClient)
+	go startPeriodicServiceDiscovery(consulClient)
 
 	// Set up Gin router
 	router := gin.Default()
@@ -59,14 +61,33 @@ func main() {
 	protected.Use(authMiddleware())
 	{
 		// Use specific routes instead of wildcard to avoid conflicts
+		protected.GET("/users", proxyHandler)
+		protected.POST("/users", proxyHandler)
 		protected.GET("/users/*userPath", proxyHandler)
 		protected.POST("/users/*userPath", proxyHandler)
+		protected.GET("/properties", proxyHandler)
+		protected.POST("/properties", proxyHandler)
 		protected.GET("/properties/*propertyPath", proxyHandler)
 		protected.POST("/properties/*propertyPath", proxyHandler)
+		protected.GET("/projects", proxyHandler)
+		protected.POST("/projects", proxyHandler)
 		protected.GET("/projects/*projectPath", proxyHandler)
 		protected.POST("/projects/*projectPath", proxyHandler)
-		protected.GET("/gallery/*galleryPath", proxyHandler)
-		protected.POST("/gallery/*galleryPath", proxyHandler)
+
+		// Gallery service endpoints - all protected
+		protected.GET("/gallery/health", proxyHandler)
+		protected.GET("/gallery/images", proxyHandler)
+		protected.POST("/gallery/images", proxyHandler)
+		protected.GET("/gallery/images/:imageId", proxyHandler)
+		protected.GET("/gallery/properties/:propertyId/images", proxyHandler)
+		protected.POST("/gallery/albums", proxyHandler)
+		protected.GET("/gallery/albums/:albumId", proxyHandler)
+		protected.POST("/gallery/albums/:albumId/images", proxyHandler)
+		protected.GET("/gallery/properties/:propertyId/progress", proxyHandler)
+		protected.GET("/gallery/properties/:propertyId/images/category/:category", proxyHandler)
+
+		protected.GET("/chat", proxyHandler)
+		protected.POST("/chat", proxyHandler)
 		protected.GET("/chat/*chatPath", proxyHandler)
 		protected.POST("/chat/*chatPath", proxyHandler)
 	}
@@ -119,6 +140,21 @@ func initJWTSecret() {
 		fmt.Printf("Generated JWT secret: %s\n", secret)
 	}
 	jwtSecret = []byte(secret)
+}
+
+// startPeriodicServiceDiscovery periodically rediscovers services to handle
+// services that may start after the API gateway
+func startPeriodicServiceDiscovery(client *consul.Client) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			fmt.Println("Performing periodic service discovery...")
+			discoverServices(client)
+		}
+	}
 }
 
 // Custom claims structure (must match auth service)
@@ -174,6 +210,7 @@ func authMiddleware() gin.HandlerFunc {
 func proxyHandler(c *gin.Context) {
 	// Example: /api/auth/register -> target service is "auth-service"
 	// Example: /api/users/123 -> target service is "user-service"
+	fmt.Printf("Handling request: %s %s\n", c.Request.Method, c.Request.URL.Path)
 	pathSegments := strings.Split(c.Request.URL.Path, "/")
 	if len(pathSegments) < 3 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request path"})
@@ -201,6 +238,24 @@ func proxyHandler(c *gin.Context) {
 	// Strip the "/api" prefix from the path before forwarding
 	originalPath := c.Request.URL.Path
 	c.Request.URL.Path = strings.TrimPrefix(originalPath, "/api")
+
+	// For gallery service, we need to handle the path mapping
+	if serviceName == "gallery-service" {
+		originalGalleryPath := c.Request.URL.Path
+
+		// Handle health endpoint mapping
+		if strings.HasPrefix(c.Request.URL.Path, "/gallery/health") {
+			c.Request.URL.Path = "/health"
+			fmt.Printf("Gallery service health path mapping: %s -> %s (service: %s, target: %s)\n",
+				originalGalleryPath, c.Request.URL.Path, serviceName, targetURL.String())
+		} else {
+			// For other gallery routes, strip the "/gallery" prefix
+			beforeStrip := c.Request.URL.Path
+			c.Request.URL.Path = strings.TrimPrefix(c.Request.URL.Path, "/gallery")
+			fmt.Printf("Gallery service path mapping: %s -> %s -> %s (service: %s, target: %s)\n",
+				originalGalleryPath, beforeStrip, c.Request.URL.Path, serviceName, targetURL.String())
+		}
+	}
 
 	// Create a new reverse proxy and serve the request
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
