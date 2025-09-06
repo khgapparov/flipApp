@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/rand"
+	"database/sql"
 	"encoding/base64"
 	"fmt"
 	"log"
@@ -12,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	consul "github.com/hashicorp/consul/api"
+	"flipapp/database"
 )
 
 const (
@@ -22,8 +24,8 @@ const (
 )
 
 var (
-	jwtSecret     []byte
-	refreshTokens = make(map[string]string) // In-memory store for refresh tokens (use Redis in production)
+	jwtSecret []byte
+	db        *sql.DB
 )
 
 // Based on the Smithy definition in auth.smithy
@@ -31,6 +33,14 @@ var (
 func main() {
 	// Generate or load JWT secret
 	initJWTSecret()
+
+	// Initialize database connection
+	var err error
+	db, err = database.Connect()
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer db.Close()
 
 	// Try to register with Consul, but continue if it fails (for development)
 	if err := registerServiceWithConsul(); err != nil {
@@ -161,6 +171,78 @@ func validateToken(tokenString string) (*CustomClaims, error) {
 	return nil, fmt.Errorf("invalid token")
 }
 
+// Database helper functions
+func storeRefreshToken(token, userID string) error {
+	expiresAt := time.Now().Add(REFRESH_TOKEN_EXPIRY)
+	_, err := db.Exec(`
+		INSERT INTO refresh_tokens (token, user_id, expires_at) 
+		VALUES ($1, $2, $3)
+		ON CONFLICT (token) DO UPDATE SET expires_at = $3
+	`, token, userID, expiresAt)
+	return err
+}
+
+func getRefreshTokenUserID(token string) (string, error) {
+	var userID string
+	err := db.QueryRow(`
+		SELECT user_id FROM refresh_tokens 
+		WHERE token = $1 AND expires_at > NOW()
+	`, token).Scan(&userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", fmt.Errorf("invalid or expired refresh token")
+		}
+		return "", err
+	}
+	return userID, nil
+}
+
+func deleteRefreshToken(token string) error {
+	_, err := db.Exec("DELETE FROM refresh_tokens WHERE token = $1", token)
+	return err
+}
+
+func createUser(email, passwordHash string) (string, error) {
+	userID := fmt.Sprintf("user_%d", time.Now().UnixNano())
+	_, err := db.Exec(`
+		INSERT INTO users (user_id, email, password_hash, profile_type)
+		VALUES ($1, $2, $3, 'PERSON')
+	`, userID, email, passwordHash)
+	if err != nil {
+		return "", err
+	}
+	return userID, nil
+}
+
+func getUserByEmail(email string) (string, string, error) {
+	var userID, passwordHash string
+	err := db.QueryRow(`
+		SELECT user_id, password_hash FROM users WHERE email = $1
+	`, email).Scan(&userID, &passwordHash)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", "", fmt.Errorf("user not found")
+		}
+		return "", "", err
+	}
+	return userID, passwordHash, nil
+}
+
+func getUserEmail(userID string) (string, error) {
+	var email string
+	err := db.QueryRow("SELECT email FROM users WHERE user_id = $1", userID).Scan(&email)
+	if err != nil {
+		return "", err
+	}
+	return email, nil
+}
+
+// Simple password hashing (in production, use bcrypt with proper salt)
+func hashPassword(password string) string {
+	// This is a simple hash for demonstration - use bcrypt in production
+	return base64.StdEncoding.EncodeToString([]byte(password))
+}
+
 // Request structures
 type RegisterRequest struct {
 	Username string `json:"username" binding:"required"`
@@ -188,9 +270,20 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement actual user registration with database
-	// For now, generate a mock user ID
-	userID := fmt.Sprintf("user_%d", time.Now().UnixNano())
+	// Check if user already exists
+	_, _, err := getUserByEmail(req.Email)
+	if err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "User already exists"})
+		return
+	}
+
+	// Create user in database
+	passwordHash := hashPassword(req.Password)
+	userID, err := createUser(req.Email, passwordHash)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+		return
+	}
 
 	accessToken, err := generateAccessToken(userID, req.Email)
 	if err != nil {
@@ -204,8 +297,11 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	// Store refresh token (in production, use Redis or database)
-	refreshTokens[refreshToken] = userID
+	// Store refresh token in database
+	if err := storeRefreshToken(refreshToken, userID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store refresh token"})
+		return
+	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"userId":       userID,
@@ -221,9 +317,19 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement actual user authentication with database
-	// For now, accept any email/password and generate a mock user ID
-	userID := fmt.Sprintf("user_%d", time.Now().UnixNano())
+	// Get user from database
+	userID, storedHash, err := getUserByEmail(req.Email)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		return
+	}
+
+	// Verify password (in production, use proper password comparison with bcrypt)
+	inputHash := hashPassword(req.Password)
+	if inputHash != storedHash {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		return
+	}
 
 	accessToken, err := generateAccessToken(userID, req.Email)
 	if err != nil {
@@ -237,8 +343,11 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Store refresh token (in production, use Redis or database)
-	refreshTokens[refreshToken] = userID
+	// Store refresh token in database
+	if err := storeRefreshToken(refreshToken, userID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store refresh token"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"accessToken":  accessToken,
@@ -253,15 +362,19 @@ func RefreshToken(c *gin.Context) {
 		return
 	}
 
-	// Validate refresh token
-	userID, exists := refreshTokens[req.RefreshToken]
-	if !exists {
+	// Validate refresh token from database
+	userID, err := getRefreshTokenUserID(req.RefreshToken)
+	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
 		return
 	}
 
-	// TODO: Get user email from database
-	email := "user@example.com" // Placeholder
+	// Get user email from database
+	email, err := getUserEmail(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user information"})
+		return
+	}
 
 	accessToken, err := generateAccessToken(userID, email)
 	if err != nil {
@@ -281,8 +394,11 @@ func Logout(c *gin.Context) {
 		return
 	}
 
-	// Remove refresh token
-	delete(refreshTokens, req.RefreshToken)
+	// Remove refresh token from database
+	if err := deleteRefreshToken(req.RefreshToken); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to logout"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Logged out successfully",

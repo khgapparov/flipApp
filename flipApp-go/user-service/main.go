@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	consul "github.com/hashicorp/consul/api"
+	"flipapp/database"
 )
 
 const (
@@ -41,9 +43,17 @@ type UserProfile struct {
 	UpdatedAt   string      `json:"updatedAt"`
 }
 
-var users = make(map[string]UserProfile)
+var db *sql.DB
 
 func main() {
+	// Initialize database connection
+	var err error
+	db, err = database.Connect()
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer db.Close()
+
 	registerServiceWithConsul()
 
 	router := gin.Default()
@@ -106,6 +116,66 @@ func registerServiceWithConsul() {
 	fmt.Printf("Successfully registered service '%s' with Consul at %s\n", SERVICE_NAME, consulAddr)
 }
 
+// Database helper functions
+func getUserFromDB(userID string) (*UserProfile, error) {
+	var user UserProfile
+	err := db.QueryRow(`
+		SELECT user_id, profile_type, email, first_name, last_name, 
+		       company_name, avatar_url, phone_number, created_at, updated_at
+		FROM users WHERE user_id = $1
+	`, userID).Scan(
+		&user.UserID, &user.ProfileType, &user.Email, &user.FirstName, &user.LastName,
+		&user.CompanyName, &user.AvatarURL, &user.PhoneNumber, &user.CreatedAt, &user.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("user not found")
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
+func updateUserInDB(userID string, firstName, lastName, companyName, avatarURL, phoneNumber *string) error {
+	_, err := db.Exec(`
+		UPDATE users 
+		SET first_name = COALESCE($1, first_name),
+		    last_name = COALESCE($2, last_name),
+		    company_name = COALESCE($3, company_name),
+		    avatar_url = COALESCE($4, avatar_url),
+		    phone_number = COALESCE($5, phone_number),
+		    updated_at = CURRENT_TIMESTAMP
+		WHERE user_id = $6
+	`, firstName, lastName, companyName, avatarURL, phoneNumber, userID)
+	return err
+}
+
+func getAllUsersFromDB() ([]UserProfile, error) {
+	rows, err := db.Query(`
+		SELECT user_id, profile_type, email, first_name, last_name, 
+		       company_name, avatar_url, phone_number, created_at, updated_at
+		FROM users
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []UserProfile
+	for rows.Next() {
+		var user UserProfile
+		err := rows.Scan(
+			&user.UserID, &user.ProfileType, &user.Email, &user.FirstName, &user.LastName,
+			&user.CompanyName, &user.AvatarURL, &user.PhoneNumber, &user.CreatedAt, &user.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	return users, nil
+}
+
 func CreateUserProfile(c *gin.Context) {
 	var input struct {
 		ProfileType ProfileType `json:"profileType" binding:"required"`
@@ -122,28 +192,15 @@ func CreateUserProfile(c *gin.Context) {
 		return
 	}
 
-	userID := fmt.Sprintf("user_%d", time.Now().UnixNano())
-	user := UserProfile{
-		UserID:      userID,
-		ProfileType: input.ProfileType,
-		Email:       input.Email,
-		FirstName:   input.FirstName,
-		LastName:    input.LastName,
-		CompanyName: input.CompanyName,
-		AvatarURL:   input.AvatarURL,
-		PhoneNumber: input.PhoneNumber,
-		CreatedAt:   time.Now().Format(time.RFC3339),
-		UpdatedAt:   time.Now().Format(time.RFC3339),
-	}
-
-	users[userID] = user
-	c.JSON(http.StatusCreated, gin.H{"profile": user})
+	// Note: User creation is handled by auth-service during registration
+	// This endpoint should only update existing user profiles
+	c.JSON(http.StatusMethodNotAllowed, gin.H{"error": "Use auth/register endpoint to create users"})
 }
 
 func GetUserProfile(c *gin.Context) {
 	userId := c.Param("userId")
-	user, exists := users[userId]
-	if !exists {
+	user, err := getUserFromDB(userId)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
@@ -152,8 +209,10 @@ func GetUserProfile(c *gin.Context) {
 
 func UpdateUserProfile(c *gin.Context) {
 	userId := c.Param("userId")
-	user, exists := users[userId]
-	if !exists {
+	
+	// Check if user exists
+	_, err := getUserFromDB(userId)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
@@ -171,21 +230,27 @@ func UpdateUserProfile(c *gin.Context) {
 		return
 	}
 
-	user.FirstName = input.FirstName
-	user.LastName = input.LastName
-	user.CompanyName = input.CompanyName
-	user.AvatarURL = input.AvatarURL
-	user.PhoneNumber = input.PhoneNumber
-	user.UpdatedAt = time.Now().Format(time.RFC3339)
+	// Update user in database
+	if err := updateUserInDB(userId, input.FirstName, input.LastName, input.CompanyName, input.AvatarURL, input.PhoneNumber); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user profile"})
+		return
+	}
 
-	users[userId] = user
-	c.JSON(http.StatusOK, gin.H{"profile": user})
+	// Get updated user profile
+	updatedUser, err := getUserFromDB(userId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get updated user profile"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"profile": updatedUser})
 }
 
 func ListUsers(c *gin.Context) {
-	userList := make([]UserProfile, 0, len(users))
-	for _, user := range users {
-		userList = append(userList, user)
+	users, err := getAllUsersFromDB()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve users"})
+		return
 	}
-	c.JSON(http.StatusOK, gin.H{"users": userList})
+	c.JSON(http.StatusOK, gin.H{"users": users})
 }

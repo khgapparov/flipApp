@@ -28,7 +28,7 @@ services:
     build:
       context: ./api-gateway
     ports:
-      - "9000:9000"
+      - "80:9000"
     environment:
       JWT_SECRET: ${JWT_SECRET:-changeme}
     depends_on:
