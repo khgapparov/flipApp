@@ -8,8 +8,6 @@ require (
 	github.com/lib/pq v1.10.9
 )
 
-replace flipapp/database => ../database
-
 require (
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect

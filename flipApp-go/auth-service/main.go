@@ -13,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	consul "github.com/hashicorp/consul/api"
-	"flipapp/database"
+	_ "github.com/lib/pq"
 )
 
 const (
@@ -34,13 +34,13 @@ func main() {
 	// Generate or load JWT secret
 	initJWTSecret()
 
-	// Initialize database connection
-	var err error
-	db, err = database.Connect()
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
-	}
-	defer db.Close()
+// Initialize database connection
+var err error
+db, err = connectToDatabase()
+if err != nil {
+	log.Fatalf("Failed to connect to database: %v", err)
+}
+defer db.Close()
 
 	// Try to register with Consul, but continue if it fails (for development)
 	if err := registerServiceWithConsul(); err != nil {
@@ -174,20 +174,24 @@ func validateToken(tokenString string) (*CustomClaims, error) {
 // Database helper functions
 func storeRefreshToken(token, userID string) error {
 	expiresAt := time.Now().Add(REFRESH_TOKEN_EXPIRY)
-	_, err := db.Exec(`
+	_, err := db.Exec(
+		`
 		INSERT INTO refresh_tokens (token, user_id, expires_at) 
 		VALUES ($1, $2, $3)
 		ON CONFLICT (token) DO UPDATE SET expires_at = $3
-	`, token, userID, expiresAt)
+	`,
+		token, userID, expiresAt)
 	return err
 }
 
 func getRefreshTokenUserID(token string) (string, error) {
 	var userID string
-	err := db.QueryRow(`
+	err := db.QueryRow(
+		`
 		SELECT user_id FROM refresh_tokens 
 		WHERE token = $1 AND expires_at > NOW()
-	`, token).Scan(&userID)
+	`,
+		token).Scan(&userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return "", fmt.Errorf("invalid or expired refresh token")
@@ -204,10 +208,12 @@ func deleteRefreshToken(token string) error {
 
 func createUser(email, passwordHash string) (string, error) {
 	userID := fmt.Sprintf("user_%d", time.Now().UnixNano())
-	_, err := db.Exec(`
+	_, err := db.Exec(
+		`
 		INSERT INTO users (user_id, email, password_hash, profile_type)
 		VALUES ($1, $2, $3, 'PERSON')
-	`, userID, email, passwordHash)
+	`,
+		userID, email, passwordHash)
 	if err != nil {
 		return "", err
 	}
@@ -216,9 +222,11 @@ func createUser(email, passwordHash string) (string, error) {
 
 func getUserByEmail(email string) (string, string, error) {
 	var userID, passwordHash string
-	err := db.QueryRow(`
+	err := db.QueryRow(
+		`
 		SELECT user_id, password_hash FROM users WHERE email = $1
-	`, email).Scan(&userID, &passwordHash)
+	`,
+		email).Scan(&userID, &passwordHash)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return "", "", fmt.Errorf("user not found")
@@ -235,6 +243,46 @@ func getUserEmail(userID string) (string, error) {
 		return "", err
 	}
 	return email, nil
+}
+
+// connectToDatabase establishes a connection to PostgreSQL database
+func connectToDatabase() (*sql.DB, error) {
+	// Get database configuration from environment variables or use defaults
+	host := getEnv("DB_HOST", "postgres")
+	port := getEnv("DB_PORT", "5432")
+	user := getEnv("DB_USER", "user")
+	password := getEnv("DB_PASSWORD", "password")
+	dbname := getEnv("DB_NAME", "flipapp")
+	sslmode := getEnv("DB_SSLMODE", "disable")
+
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		host, port, user, password, dbname, sslmode)
+
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database connection: %v", err)
+	}
+
+	// Set connection pool settings
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
+	// Test the connection
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %v", err)
+	}
+
+	log.Println("Successfully connected to PostgreSQL database")
+	return db, nil
+}
+
+// getEnv gets environment variable or returns default value
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
 
 // Simple password hashing (in production, use bcrypt with proper salt)

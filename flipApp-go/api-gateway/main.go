@@ -48,8 +48,18 @@ func main() {
 	router := gin.Default()
 
 	// Configure CORS middleware
+	// Get allowed origins from environment variable or use default for development
+	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+	var origins []string
+	if allowedOrigins != "" {
+		origins = strings.Split(allowedOrigins, ",")
+	} else {
+		// Default to allowing all origins in development
+		origins = []string{"*"}
+	}
+
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:8082", "http://localhost:8080", "http://localhost:8081", "http://localhost:8084"},
+		AllowOrigins:     origins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},

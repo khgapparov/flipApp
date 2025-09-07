@@ -10,7 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	consul "github.com/hashicorp/consul/api"
-	"flipapp/database"
+	_ "github.com/lib/pq"
 )
 
 const (
@@ -48,7 +48,7 @@ var db *sql.DB
 func main() {
 	// Initialize database connection
 	var err error
-	db, err = database.Connect()
+	db, err = connectToDatabase()
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
@@ -253,4 +253,44 @@ func ListUsers(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"users": users})
+}
+
+// connectToDatabase establishes a connection to PostgreSQL database
+func connectToDatabase() (*sql.DB, error) {
+	// Get database configuration from environment variables or use defaults
+	host := getEnv("DB_HOST", "postgres")
+	port := getEnv("DB_PORT", "5432")
+	user := getEnv("DB_USER", "user")
+	password := getEnv("DB_PASSWORD", "password")
+	dbname := getEnv("DB_NAME", "flipapp")
+	sslmode := getEnv("DB_SSLMODE", "disable")
+
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		host, port, user, password, dbname, sslmode)
+
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database connection: %v", err)
+	}
+
+	// Set connection pool settings
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
+	// Test the connection
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %v", err)
+	}
+
+	log.Println("Successfully connected to PostgreSQL database")
+	return db, nil
+}
+
+// getEnv gets environment variable or returns default value
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
