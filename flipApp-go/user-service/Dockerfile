@@ -3,12 +3,14 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
-# Copy the Go module files and download dependencies
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Copy the source code
+# Copy the entire project structure to access the database module
 COPY . .
+
+# Change to user-service directory and build
+WORKDIR /app/user-service
+
+# Download dependencies
+RUN go mod download
 
 # Build the application
 # -o /app/main creates the binary at the specified path

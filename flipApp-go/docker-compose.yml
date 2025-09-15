@@ -26,11 +26,13 @@ services:
 
   api-gateway:
     build:
-      context: ./api-gateway
+      context: .
+      dockerfile: ./api-gateway/Dockerfile
     ports:
       - "9000:9000"
     environment:
       JWT_SECRET: ${JWT_SECRET:-changeme}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
     depends_on:
       - consul
       - auth-service
@@ -43,7 +45,8 @@ services:
 
   auth-service:
     build:
-      context: ./auth-service
+      context: .
+      dockerfile: ./auth-service/Dockerfile
     ports:
       - "8080:8080"
     environment:
@@ -55,7 +58,8 @@ services:
 
   user-service:
     build:
-      context: ./user-service
+      context: .
+      dockerfile: ./user-service/Dockerfile
     depends_on:
       - postgres
       - consul
@@ -63,7 +67,8 @@ services:
 
   property-service:
     build:
-      context: ./property-service
+      context: .
+      dockerfile: ./property-service/Dockerfile
     depends_on:
       - postgres
       - consul
@@ -71,7 +76,8 @@ services:
 
   project-service:
     build:
-      context: ./project-service
+      context: .
+      dockerfile: ./project-service/Dockerfile
     ports:
       - "8083:8083"
     depends_on:
@@ -81,7 +87,8 @@ services:
 
   gallery-service:
     build:
-      context: ./gallery-service
+      context: .
+      dockerfile: ./gallery-service/Dockerfile
     depends_on:
       - postgres
       - consul
@@ -89,7 +96,8 @@ services:
 
   chat-service:
     build:
-      context: ./chat-service
+      context: .
+      dockerfile: ./chat-service/Dockerfile
     depends_on:
       - postgres
       - consul

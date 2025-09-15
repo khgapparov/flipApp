@@ -50,6 +50,23 @@ type Project struct {
 	Status      ProjectStatus `json:"status"`
 	ProjectName *string       `json:"projectName,omitempty"`
 	Budget      *float64      `json:"budget,omitempty"`
+
+	// New Financial Fields
+	ListedPrice        *float64      `json:"listedPrice,omitempty"`
+	OfferedPrice       *float64      `json:"offeredPrice,omitempty"`
+	OfferAcceptedPrice *float64      `json:"offerAcceptedPrice,omitempty"`
+	AVRPrice           *float64      `json:"avrPrice,omitempty"`
+	PostingPrice       *float64      `json:"postingPrice,omitempty"`
+	SellingPrice       *float64      `json:"sellingPrice,omitempty"`
+
+	// Detailed Cost Tracking
+	EstimatedLaborCost    *float64      `json:"estimatedLaborCost,omitempty"`
+	EstimatedMaterialsCost *float64      `json:"estimatedMaterialsCost,omitempty"`
+	EstimatedOtherCosts   *float64      `json:"estimatedOtherCosts,omitempty"`
+	ActualLaborCost       *float64      `json:"actualLaborCost,omitempty"`
+	ActualMaterialsCost   *float64      `json:"actualMaterialsCost,omitempty"`
+	ActualOtherCosts      *float64      `json:"actualOtherCosts,omitempty"`
+
 	StartDate   *string       `json:"startDate,omitempty"`
 	EndDate     *string       `json:"endDate,omitempty"`
 	CreatedAt   string        `json:"createdAt"`
@@ -81,6 +98,7 @@ func main() {
 		api.GET("", ListProjects)
 		api.POST("/:projectId/members", AddProjectMember)
 		api.GET("/:projectId/members", ListProjectMembers)
+		api.PUT("/:projectId/pricing", UpdateProjectPricing) // <--- Add this line
 	}
 
 	fmt.Printf("Project Service started on port %d\n", SERVICE_PORT)
@@ -133,9 +151,13 @@ var projectMembers = make(map[string][]ProjectMember)
 
 func CreateProject(c *gin.Context) {
 	var input struct {
-		PropertyID  string   `json:"propertyId" binding:"required"`
-		ProjectName *string  `json:"projectName"`
-		Budget      *float64 `json:"budget"`
+		PropertyID           string   `json:"propertyId" binding:"required"`
+		ProjectName          *string  `json:"projectName"`
+		Budget               *float64 `json:"budget"`
+		AVRPrice             *float64 `json:"avrPrice"`
+		EstimatedLaborCost    *float64 `json:"estimatedLaborCost"`
+		EstimatedMaterialsCost *float64 `json:"estimatedMaterialsCost"`
+		EstimatedOtherCosts   *float64 `json:"estimatedOtherCosts"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -145,13 +167,17 @@ func CreateProject(c *gin.Context) {
 
 	projectID := fmt.Sprintf("project_%d", time.Now().UnixNano())
 	project := Project{
-		ProjectID:   projectID,
-		PropertyID:  input.PropertyID,
-		Status:      LEAD,
-		ProjectName: input.ProjectName,
-		Budget:      input.Budget,
-		CreatedAt:   time.Now().Format(time.RFC3339),
-		UpdatedAt:   time.Now().Format(time.RFC3339),
+		ProjectID:             projectID,
+		PropertyID:            input.PropertyID,
+		Status:                LEAD,
+		ProjectName:           input.ProjectName,
+		Budget:                input.Budget,
+		AVRPrice:              input.AVRPrice,
+		EstimatedLaborCost:    input.EstimatedLaborCost,
+		EstimatedMaterialsCost: input.EstimatedMaterialsCost,
+		EstimatedOtherCosts:   input.EstimatedOtherCosts,
+		CreatedAt:             time.Now().Format(time.RFC3339),
+		UpdatedAt:             time.Now().Format(time.RFC3339),
 	}
 
 	projects[projectID] = project
@@ -236,4 +262,80 @@ func ListProjectMembers(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"members": members})
+}
+
+func UpdateProjectPricing(c *gin.Context) {
+	projectId := c.Param("projectId")
+	project, exists := projects[projectId]
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
+		return
+	}
+
+	var input struct {
+		ListedPrice          *float64 `json:"listedPrice"`
+		OfferedPrice         *float64 `json:"offeredPrice"`
+		OfferAcceptedPrice   *float64 `json:"offerAcceptedPrice"`
+		AVRPrice             *float64 `json:"avrPrice"`
+		Budget               *float64 `json:"budget"`
+		PostingPrice         *float64 `json:"postingPrice"`
+		SellingPrice         *float64 `json:"sellingPrice"`
+		EstimatedLaborCost    *float64 `json:"estimatedLaborCost"`
+		EstimatedMaterialsCost *float64 `json:"estimatedMaterialsCost"`
+		EstimatedOtherCosts   *float64 `json:"estimatedOtherCosts"`
+		ActualLaborCost       *float64 `json:"actualLaborCost"`
+		ActualMaterialsCost   *float64 `json:"actualMaterialsCost"`
+		ActualOtherCosts      *float64 `json:"actualOtherCosts"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Update only the fields that were provided in the request
+	if input.ListedPrice != nil {
+		project.ListedPrice = input.ListedPrice
+	}
+	if input.OfferedPrice != nil {
+		project.OfferedPrice = input.OfferedPrice
+	}
+	if input.OfferAcceptedPrice != nil {
+		project.OfferAcceptedPrice = input.OfferAcceptedPrice
+	}
+	if input.AVRPrice != nil {
+		project.AVRPrice = input.AVRPrice
+	}
+	if input.Budget != nil {
+		project.Budget = input.Budget
+	}
+	if input.PostingPrice != nil {
+		project.PostingPrice = input.PostingPrice
+	}
+	if input.SellingPrice != nil {
+		project.SellingPrice = input.SellingPrice
+	}
+	if input.EstimatedLaborCost != nil {
+		project.EstimatedLaborCost = input.EstimatedLaborCost
+	}
+	if input.EstimatedMaterialsCost != nil {
+		project.EstimatedMaterialsCost = input.EstimatedMaterialsCost
+	}
+	if input.EstimatedOtherCosts != nil {
+		project.EstimatedOtherCosts = input.EstimatedOtherCosts
+	}
+	if input.ActualLaborCost != nil {
+		project.ActualLaborCost = input.ActualLaborCost
+	}
+	if input.ActualMaterialsCost != nil {
+		project.ActualMaterialsCost = input.ActualMaterialsCost
+	}
+	if input.ActualOtherCosts != nil {
+		project.ActualOtherCosts = input.ActualOtherCosts
+	}
+
+	project.UpdatedAt = time.Now().Format(time.RFC3339)
+	projects[projectId] = project
+
+	c.JSON(http.StatusOK, gin.H{"project": project})
 }
