@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:14-alpine
@@ -41,6 +39,7 @@ services:
       - project-service
       - gallery-service
       - chat-service
+      - storage-service
     restart: on-failure
 
   auth-service:
@@ -100,6 +99,14 @@ services:
       dockerfile: ./chat-service/Dockerfile
     depends_on:
       - postgres
+      - consul
+    restart: on-failure
+
+  storage-service:
+    build:
+      context: .
+      dockerfile: ./storage-service/Dockerfile
+    depends_on:
       - consul
     restart: on-failure
 

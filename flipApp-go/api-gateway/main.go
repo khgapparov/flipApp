@@ -107,6 +107,14 @@ func main() {
 		protected.GET("/gallery/properties/:propertyId/progress", proxyHandler)
 		protected.GET("/gallery/properties/:propertyId/images/category/:category", proxyHandler)
 
+		// Storage service endpoints - all protected
+		protected.GET("/storage/health", proxyHandler)
+		protected.POST("/storage/files", proxyHandler)
+		protected.GET("/storage/files/:fileId", proxyHandler)
+		protected.DELETE("/storage/files/:fileId", proxyHandler)
+		protected.GET("/storage/files/:fileId/url", proxyHandler)
+		protected.GET("/storage/files", proxyHandler)
+
 		protected.GET("/chat", proxyHandler)
 		protected.POST("/chat", proxyHandler)
 		protected.GET("/chat/*chatPath", proxyHandler)
@@ -275,6 +283,24 @@ func proxyHandler(c *gin.Context) {
 			c.Request.URL.Path = strings.TrimPrefix(c.Request.URL.Path, "/gallery")
 			fmt.Printf("Gallery service path mapping: %s -> %s -> %s (service: %s, target: %s)\n",
 				originalGalleryPath, beforeStrip, c.Request.URL.Path, serviceName, targetURL.String())
+		}
+	}
+
+	// For storage service, we need to handle the path mapping
+	if serviceName == "storage-service" {
+		originalStoragePath := c.Request.URL.Path
+
+		// Handle health endpoint mapping
+		if strings.HasPrefix(c.Request.URL.Path, "/storage/health") {
+			c.Request.URL.Path = "/health"
+			fmt.Printf("Storage service health path mapping: %s -> %s (service: %s, target: %s)\n",
+				originalStoragePath, c.Request.URL.Path, serviceName, targetURL.String())
+		} else {
+			// For other storage routes, strip the "/storage" prefix
+			beforeStrip := c.Request.URL.Path
+			c.Request.URL.Path = strings.TrimPrefix(c.Request.URL.Path, "/storage")
+			fmt.Printf("Storage service path mapping: %s -> %s -> %s (service: %s, target: %s)\n",
+				originalStoragePath, beforeStrip, c.Request.URL.Path, serviceName, targetURL.String())
 		}
 	}
 
